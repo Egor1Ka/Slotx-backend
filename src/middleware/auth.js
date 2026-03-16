@@ -2,11 +2,13 @@ import authServices from "../services/authServices.js";
 import { httpResponse } from "../utils/http/httpResponse.js";
 import { generalStatus } from "../utils/http/httpStatus.js";
 import { parseAuthToken } from "../utils/http/httpUtils.js";
+import { COOKIE_NAMES } from "../utils/cookieOptions.js";
 
 const authMiddleware = (req, res, next) => {
   try {
-    const { authorization } = req.headers;
-    const token = parseAuthToken(authorization);
+    const bearerToken = parseAuthToken(req.headers.authorization);
+    const cookieToken = req.cookies && req.cookies[COOKIE_NAMES.access];
+    const token = bearerToken || cookieToken;
 
     if (!token) {
       httpResponse(res, generalStatus.UNAUTHORIZED);
@@ -24,7 +26,7 @@ const authMiddleware = (req, res, next) => {
     next();
   } catch (error) {
     console.error("authMiddleware error:", error);
-    httpResponse(res, generalStatus.UNAUTHORIZED, { reason: "exception" });
+    httpResponse(res, generalStatus.UNAUTHORIZED);
   }
 };
 
