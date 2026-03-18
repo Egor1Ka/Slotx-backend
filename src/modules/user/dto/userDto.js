@@ -1,4 +1,4 @@
-const toDTO = (doc) => ({
+const toUserDto = (doc) => ({
   id: doc._id.toString(),
   name: doc.name,
   email: doc.email,
@@ -7,4 +7,4 @@ const toDTO = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-export default { toDTO };
+export { toUserDto };

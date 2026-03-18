@@ -1,11 +1,17 @@
-import { httpResponse, httpResponseError } from "../utils/http/httpResponse.js";
-import { generalStatus, userStatus } from "../utils/http/httpStatus.js";
-import { validateSchema } from "../utils/validation/requestValidation.js";
+import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
+import { generalStatus, userStatus } from "../../../shared/utils/http/httpStatus.js";
+import { validateSchema } from "../../../shared/utils/validation/requestValidation.js";
 import {
   emailValidator,
   isValidObjectId,
-} from "../utils/validation/validators.js";
-import userServices from "../services/userServices.js";
+} from "../../../shared/utils/validation/validators.js";
+import {
+  createUser as serviceCreateUser,
+  getUserById,
+  getUser as serviceGetUser,
+  updateUser as serviceUpdateUser,
+  deleteUser as serviceDeleteUser,
+} from "../services/userServices.js";
 
 const createUserSchema = {
   name: { type: "string", required: true },
@@ -42,7 +48,7 @@ const createUser = async (req, res) => {
       return;
     }
 
-    const user = await userServices.createUser(validated);
+    const user = await serviceCreateUser(validated);
     httpResponse(res, generalStatus.SUCCESS, user);
   } catch (error) {
     httpResponseError(res, error);
@@ -58,7 +64,7 @@ const getUser = async (req, res) => {
       return;
     }
 
-    const user = await userServices.getUserById(id);
+    const user = await getUserById(id);
     if (!user) {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
@@ -93,7 +99,7 @@ const updateUser = async (req, res) => {
       return;
     }
 
-    const user = await userServices.updateUser(id, validated);
+    const user = await serviceUpdateUser(id, validated);
     if (!user) {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
@@ -113,7 +119,7 @@ const deleteUser = async (req, res) => {
       return;
     }
 
-    const deleted = await userServices.deleteUser(id);
+    const deleted = await serviceDeleteUser(id);
     if (!deleted) {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
@@ -128,7 +134,7 @@ const getProfile = async (req, res) => {
   try {
     const { id } = req.user;
 
-    const user = await userServices.getUserById(id);
+    const user = await getUserById(id);
     if (!user) {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
