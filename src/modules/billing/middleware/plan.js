@@ -1,13 +1,13 @@
-import planServices from "../services/planServices.js";
-import { httpResponse } from "../utils/http/httpResponse.js";
-import { generalStatus, billingStatus } from "../utils/http/httpStatus.js";
+import { getUserPlan, planHasFeature } from "../services/planServices.js";
+import { httpResponse } from "../../../shared/utils/http/httpResponse.js";
+import { generalStatus, billingStatus } from "../../../shared/utils/http/httpStatus.js";
 import { PLAN_HIERARCHY } from "../constants/billing.js";
 
 // ── Resolve plan once per request ────────────────────────────────────────────
 
 const ensurePlan = async (req) => {
   if (!req.plan) {
-    req.plan = await planServices.getUserPlan(req.user.id);
+    req.plan = await getUserPlan(req.user.id);
   }
   return req.plan;
 };
@@ -17,7 +17,7 @@ const ensurePlan = async (req) => {
 const requireFeature = (featureName) => async (req, res, next) => {
   try {
     const plan = await ensurePlan(req);
-    const hasAccess = planServices.planHasFeature(plan, featureName);
+    const hasAccess = planHasFeature(plan, featureName);
 
     if (!hasAccess) {
       httpResponse(res, billingStatus.FEATURE_LOCKED);

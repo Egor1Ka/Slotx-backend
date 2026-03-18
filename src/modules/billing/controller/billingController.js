@@ -1,16 +1,16 @@
-import creemProvider from "../providers/billing/creem.js";
-import billingServices from "../services/billingServices.js";
-import { httpResponse, httpResponseError } from "../utils/http/httpResponse.js";
-import { generalStatus } from "../utils/http/httpStatus.js";
+import creemProvider from "../providers/creem.js";
+import { processCheckoutCompleted, processSubscriptionEvent, processRefund, processDispute } from "../services/billingServices.js";
+import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
+import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import { WEBHOOK_EVENT } from "../constants/billing.js";
 
 // ── Webhook event → handler mapping ──────────────────────────────────────────
 
 const buildStatusHandler = (eventType) => (data) =>
-  billingServices.processSubscriptionEvent(eventType, data);
+  processSubscriptionEvent(eventType, data);
 
 const WEBHOOK_HANDLERS = {
-  [WEBHOOK_EVENT.CHECKOUT_COMPLETED]:             billingServices.processCheckoutCompleted,
+  [WEBHOOK_EVENT.CHECKOUT_COMPLETED]:             processCheckoutCompleted,
   [WEBHOOK_EVENT.SUBSCRIPTION_ACTIVE]:            buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_ACTIVE),
   [WEBHOOK_EVENT.SUBSCRIPTION_PAID]:              buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_PAID),
   [WEBHOOK_EVENT.SUBSCRIPTION_PAST_DUE]:          buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_PAST_DUE),
@@ -18,8 +18,8 @@ const WEBHOOK_HANDLERS = {
   [WEBHOOK_EVENT.SUBSCRIPTION_EXPIRED]:           buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_EXPIRED),
   [WEBHOOK_EVENT.SUBSCRIPTION_PAUSED]:            buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_PAUSED),
   [WEBHOOK_EVENT.SUBSCRIPTION_SCHEDULED_CANCEL]:  buildStatusHandler(WEBHOOK_EVENT.SUBSCRIPTION_SCHEDULED_CANCEL),
-  [WEBHOOK_EVENT.REFUND_CREATED]:                 billingServices.processRefund,
-  [WEBHOOK_EVENT.DISPUTE_CREATED]:                billingServices.processDispute,
+  [WEBHOOK_EVENT.REFUND_CREATED]:                 processRefund,
+  [WEBHOOK_EVENT.DISPUTE_CREATED]:                processDispute,
 };
 
 // ── Webhook handler ──────────────────────────────────────────────────────────
@@ -59,4 +59,4 @@ const handleWebhook = async (req, res) => {
   }
 };
 
-export default { handleWebhook };
+export { handleWebhook };

@@ -33,4 +33,4 @@ const paymentToDTO = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-export default { subscriptionToDTO, paymentToDTO, formatOptionalId };
+export { subscriptionToDTO, paymentToDTO, formatOptionalId };

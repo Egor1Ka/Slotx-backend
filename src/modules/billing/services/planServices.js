@@ -1,5 +1,5 @@
-import subscriptionRepository from "../repository/subscriptionRepository.js";
-import paymentRepository from "../repository/paymentRepository.js";
+import { getActiveSubscriptionByUserId } from "../repository/subscriptionRepository.js";
+import { getOneTimePurchasesByUserId } from "../repository/paymentRepository.js";
 import {
   PRODUCT_PLANS,
   PLAN_HIERARCHY,
@@ -35,8 +35,8 @@ const resolveBestPlanKey = (subscription, oneTimePurchases) => {
 
 const getUserPlan = async (userId) => {
   const [subscription, oneTimePurchases] = await Promise.all([
-    subscriptionRepository.getActiveSubscriptionByUserId(userId),
-    paymentRepository.getOneTimePurchasesByUserId(userId),
+    getActiveSubscriptionByUserId(userId),
+    getOneTimePurchasesByUserId(userId),
   ]);
 
   const planKey = resolveBestPlanKey(subscription, oneTimePurchases);
@@ -55,13 +55,4 @@ const getUserLimit = async (userId, limitName) => {
   return getPlanLimit(plan, limitName);
 };
 
-export default {
-  resolvePlanKey,
-  getPlanConfig,
-  planHasFeature,
-  getPlanLimit,
-  resolveBestPlanKey,
-  getUserPlan,
-  userHasFeature,
-  getUserLimit,
-};
+export { resolvePlanKey, getPlanConfig, planHasFeature, getPlanLimit, resolveBestPlanKey, getUserPlan, userHasFeature, getUserLimit };

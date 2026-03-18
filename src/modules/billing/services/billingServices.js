@@ -1,8 +1,8 @@
-import userRepository from "../repository/userRepository.js";
-import subscriptionRepository from "../repository/subscriptionRepository.js";
-import paymentRepository from "../repository/paymentRepository.js";
-import planServices from "./planServices.js";
-import billingHooks from "./billing/hooks.js";
+import { getUser, getUserById } from "../../user/index.js";
+import { upsertByCreemSubscriptionId, getSubscriptionByCreemId, updateStatusByCreemId } from "../repository/subscriptionRepository.js";
+import { createPayment } from "../repository/paymentRepository.js";
+import { resolvePlanKey } from "./planServices.js";
+import { getHooksForPlan } from "../hooks/productHooks.js";
 import {
   WEBHOOK_EVENT,
   WEBHOOK_STATUS_MAP,
@@ -31,7 +31,7 @@ const isRenewal = (oldStatus, newStatus) =>
 // ── Run hook safely ──────────────────────────────────────────────────────────
 
 const tryRunHook = async (planKey, hookName, user, subscription) => {
-  const hooks = billingHooks.getHooksForPlan(planKey);
+  const hooks = getHooksForPlan(planKey);
   if (!hooks || !hooks[hookName]) return;
   await hooks[hookName](user, subscription);
 };
@@ -40,7 +40,7 @@ const tryRunHook = async (planKey, hookName, user, subscription) => {
 
 const createPaymentSafe = async (paymentData) => {
   try {
-    return await paymentRepository.createPayment(paymentData);
+    return await createPayment(paymentData);
   } catch (error) {
     if (isDuplicateKeyError(error)) return null;
     throw error;
@@ -91,9 +91,9 @@ const runTransitionHooks = async (oldStatus, newStatus, user, subscription) => {
 // ── Webhook processors ───────────────────────────────────────────────────────
 
 const processCheckoutCompleted = async (data) => {
-  const user = await userRepository.getUser({ email: data.customer_email });
+  const user = await getUser({ email: data.customer_email });
   const userId = user ? user.id : null;
-  const planKey = planServices.resolvePlanKey(data.product_id);
+  const planKey = resolvePlanKey(data.product_id);
 
   const paymentRecord = buildPaymentRecord(userId, WEBHOOK_EVENT.CHECKOUT_COMPLETED, data);
   await createPaymentSafe(paymentRecord);
@@ -109,7 +109,7 @@ const processCheckoutCompleted = async (data) => {
     };
 
     const subscription =
-      await subscriptionRepository.upsertByCreemSubscriptionId(
+      await upsertByCreemSubscriptionId(
         data.subscription_id,
         subscriptionData,
       );
@@ -126,7 +126,7 @@ const processSubscriptionEvent = async (eventType, data) => {
 
   const updateFields = { status: newStatus, ...buildPeriodExtra(data) };
 
-  const result = await subscriptionRepository.updateStatusByCreemId(
+  const result = await updateStatusByCreemId(
     data.subscription_id,
     updateFields,
   );
@@ -135,7 +135,7 @@ const processSubscriptionEvent = async (eventType, data) => {
 
   const oldStatus = result.before.status;
   const subscription = result.after;
-  const user = await userRepository.getUserById(result.before.userId);
+  const user = await getUserById(result.before.userId);
 
   if (eventType === WEBHOOK_EVENT.SUBSCRIPTION_PAID) {
     const paymentRecord = buildPaymentRecord(
@@ -153,7 +153,7 @@ const processSubscriptionEvent = async (eventType, data) => {
 
 const buildSimpleEventProcessor = (eventType) => async (data) => {
   const existing = data.subscription_id
-    ? await subscriptionRepository.getSubscriptionByCreemId(data.subscription_id)
+    ? await getSubscriptionByCreemId(data.subscription_id)
     : null;
   const userId = existing ? existing.userId : null;
   const paymentRecord = buildPaymentRecord(userId, eventType, data);
@@ -163,9 +163,4 @@ const buildSimpleEventProcessor = (eventType) => async (data) => {
 const processRefund = buildSimpleEventProcessor(WEBHOOK_EVENT.REFUND_CREATED);
 const processDispute = buildSimpleEventProcessor(WEBHOOK_EVENT.DISPUTE_CREATED);
 
-export default {
-  processCheckoutCompleted,
-  processSubscriptionEvent,
-  processRefund,
-  processDispute,
-};
+export { processCheckoutCompleted, processSubscriptionEvent, processRefund, processDispute };

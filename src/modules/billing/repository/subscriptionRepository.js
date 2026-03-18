@@ -1,6 +1,6 @@
-import Subscription from "../models/Subscription.js";
+import Subscription from "../model/Subscription.js";
 import { ACCESS_GRANTING_STATUSES } from "../constants/billing.js";
-import billingDto from "../dto/billingDto.js";
+import { subscriptionToDTO } from "../dto/billingDto.js";
 
 const upsertByCreemSubscriptionId = async (creemSubscriptionId, data) => {
   const doc = await Subscription.findOneAndUpdate(
@@ -8,7 +8,7 @@ const upsertByCreemSubscriptionId = async (creemSubscriptionId, data) => {
     data,
     { upsert: true, new: true },
   );
-  return billingDto.subscriptionToDTO(doc);
+  return subscriptionToDTO(doc);
 };
 
 const getActiveSubscriptionByUserId = async (userId) => {
@@ -17,13 +17,13 @@ const getActiveSubscriptionByUserId = async (userId) => {
     status: { $in: ACCESS_GRANTING_STATUSES },
   });
   if (!doc) return null;
-  return billingDto.subscriptionToDTO(doc);
+  return subscriptionToDTO(doc);
 };
 
 const getSubscriptionByCreemId = async (creemSubscriptionId) => {
   const doc = await Subscription.findOne({ creemSubscriptionId });
   if (!doc) return null;
-  return billingDto.subscriptionToDTO(doc);
+  return subscriptionToDTO(doc);
 };
 
 const updateStatusByCreemId = async (creemSubscriptionId, updateFields) => {
@@ -35,14 +35,9 @@ const updateStatusByCreemId = async (creemSubscriptionId, updateFields) => {
   if (!before) return null;
   const afterDoc = { ...before.toObject(), ...updateFields };
   return {
-    before: billingDto.subscriptionToDTO(before),
-    after: billingDto.subscriptionToDTO(afterDoc),
+    before: subscriptionToDTO(before),
+    after: subscriptionToDTO(afterDoc),
   };
 };
 
-export default {
-  upsertByCreemSubscriptionId,
-  getActiveSubscriptionByUserId,
-  getSubscriptionByCreemId,
-  updateStatusByCreemId,
-};
+export { upsertByCreemSubscriptionId, getActiveSubscriptionByUserId, getSubscriptionByCreemId, updateStatusByCreemId };

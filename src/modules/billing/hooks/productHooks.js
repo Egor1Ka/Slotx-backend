@@ -17,4 +17,4 @@ const PRODUCT_HOOKS = {
 
 const getHooksForPlan = (planKey) => PRODUCT_HOOKS[planKey];
 
-export default { PRODUCT_HOOKS, getHooksForPlan };
+export { PRODUCT_HOOKS, getHooksForPlan };
