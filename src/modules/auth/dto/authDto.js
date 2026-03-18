@@ -9,4 +9,4 @@ const refreshTokenToDTO = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-export default { refreshTokenToDTO };
+export { refreshTokenToDTO };

@@ -1,7 +1,7 @@
-import authServices from "../services/authServices.js";
-import { httpResponse } from "../utils/http/httpResponse.js";
-import { generalStatus } from "../utils/http/httpStatus.js";
-import { parseAuthToken } from "../utils/http/httpUtils.js";
+import { verifyAccessToken } from "../services/authServices.js";
+import { httpResponse } from "../../../shared/utils/http/httpResponse.js";
+import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
+import { parseAuthToken } from "../../../shared/utils/http/httpUtils.js";
 import { COOKIE_NAMES } from "../utils/cookieOptions.js";
 
 const authMiddleware = (req, res, next) => {
@@ -15,7 +15,7 @@ const authMiddleware = (req, res, next) => {
       return;
     }
 
-    const result = authServices.verifyAccessToken(token);
+    const result = verifyAccessToken(token);
 
     if (!result.valid) {
       httpResponse(res, generalStatus.UNAUTHORIZED, { reason: result.reason });
@@ -30,4 +30,4 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-export default authMiddleware;
+export { authMiddleware };

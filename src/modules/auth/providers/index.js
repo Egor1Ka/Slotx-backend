@@ -1,4 +1,4 @@
-import google from "./auth/google.js";
+import google from "./google.js";
 
 const PROVIDERS = {
   google,

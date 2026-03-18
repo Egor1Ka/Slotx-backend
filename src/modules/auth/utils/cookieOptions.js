@@ -1,4 +1,4 @@
-import { parseDurationMs } from "./duration.js";
+import { parseDurationMs } from "../../../shared/utils/duration.js";
 
 const { NODE_ENV, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
 

@@ -1,8 +1,13 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import userRepository from "../repository/userRepository.js";
-import refreshTokenRepository from "../repository/refreshTokenRepository.js";
-import { parseDurationMs } from "../utils/duration.js";
+import { getUser, updateUser, createUser as createUserRecord, getUserById } from "../../user/index.js";
+import {
+  createRefreshToken,
+  getRefreshTokenByToken,
+  deleteRefreshTokensByUserAndProvider,
+  deleteRefreshTokenByToken,
+} from "../repository/refreshTokenRepository.js";
+import { parseDurationMs } from "../../../shared/utils/duration.js";
 import { REFRESH_BYTES, STATE_BYTES } from "../constants/auth.js";
 
 const { JWT_SECRET, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
@@ -36,18 +41,18 @@ const buildNormalizedUser = (profile) => ({
 });
 
 const findOrCreateUser = async (profile) => {
-  const existing = await userRepository.getUser({ email: profile.email });
+  const existing = await getUser({ email: profile.email });
 
   if (existing) {
     if (!existing.avatar && profile.avatar) {
-      return userRepository.updateUser(existing.id, {
+      return updateUser(existing.id, {
         avatar: profile.avatar,
       });
     }
     return existing;
   }
 
-  return userRepository.createUser(buildNormalizedUser(profile));
+  return createUserRecord(buildNormalizedUser(profile));
 };
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -70,7 +75,7 @@ const buildRefreshTokenRecord = (userId, provider, providerUserId, token) => ({
 });
 
 const createSession = async (user, provider, providerUserId) => {
-  await refreshTokenRepository.deleteRefreshTokensByUserAndProvider(
+  await deleteRefreshTokensByUserAndProvider(
     user.id,
     provider,
   );
@@ -82,7 +87,7 @@ const createSession = async (user, provider, providerUserId) => {
     providerUserId,
     refreshToken,
   );
-  await refreshTokenRepository.createRefreshToken(record);
+  await createRefreshToken(record);
 
   const accessToken = createAccessToken(
     buildAccessTokenPayload(user, provider),
@@ -95,11 +100,11 @@ const createSession = async (user, provider, providerUserId) => {
 
 const refreshSession = async (refreshToken) => {
   const stored =
-    await refreshTokenRepository.getRefreshTokenByToken(refreshToken);
+    await getRefreshTokenByToken(refreshToken);
 
   if (!stored || stored.expiresAt <= new Date()) return null;
 
-  const user = await userRepository.getUserById(stored.userId);
+  const user = await getUserById(stored.userId);
 
   if (!user) return null;
 
@@ -111,10 +116,10 @@ const refreshSession = async (refreshToken) => {
 };
 
 const revokeSession = async (refreshToken) => {
-  await refreshTokenRepository.deleteRefreshTokenByToken(refreshToken);
+  await deleteRefreshTokenByToken(refreshToken);
 };
 
-export default {
+export {
   createAccessToken,
   verifyAccessToken,
   createOauthState,

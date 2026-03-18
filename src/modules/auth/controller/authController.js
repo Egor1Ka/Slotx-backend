@@ -1,7 +1,7 @@
-import authServices from "../services/authServices.js";
-import providers from "../providers/auth/index.js";
-import { httpResponse, httpResponseError } from "../utils/http/httpResponse.js";
-import { generalStatus } from "../utils/http/httpStatus.js";
+import { createOauthState, findOrCreateUser, createSession, refreshSession, revokeSession } from "../services/authServices.js";
+import providers from "../providers/index.js";
+import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
+import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import {
   COOKIE_NAMES,
   stateCookieOptions,
@@ -14,7 +14,7 @@ const { FRONTEND_URL } = process.env;
 // ── Provider handler factories ────────────────────────────────────────────────
 
 const buildProviderLoginHandler = (providerName) => (_req, res) => {
-  const state = authServices.createOauthState();
+  const state = createOauthState();
   const authUrl = providers.getProvider(providerName).buildAuthUrl(state);
 
   res.cookie(COOKIE_NAMES.state, state, stateCookieOptions);
@@ -38,8 +38,8 @@ const buildProviderCallbackHandler = (providerName) => async (req, res) => {
     const provider = providers.getProvider(providerName);
     const tokens = await provider.exchangeCode(code);
     const profile = await provider.getProfile(tokens);
-    const user = await authServices.findOrCreateUser(profile);
-    const session = await authServices.createSession(
+    const user = await findOrCreateUser(profile);
+    const session = await createSession(
       user,
       providerName,
       profile.providerUserId,
@@ -73,7 +73,7 @@ const handleRefreshToken = async (req, res) => {
       return;
     }
 
-    const result = await authServices.refreshSession(refreshToken);
+    const result = await refreshSession(refreshToken);
 
     if (!result) {
       httpResponse(res, generalStatus.UNAUTHORIZED);
@@ -96,7 +96,7 @@ const handleLogout = async (req, res) => {
     const refreshToken = req.cookies[COOKIE_NAMES.refresh];
 
     if (refreshToken) {
-      await authServices.revokeSession(refreshToken);
+      await revokeSession(refreshToken);
     }
 
     res.clearCookie(COOKIE_NAMES.access, accessCookieOptions);
@@ -107,9 +107,4 @@ const handleLogout = async (req, res) => {
   }
 };
 
-export default {
-  handleGoogleLogin,
-  handleGoogleCallback,
-  handleRefreshToken,
-  handleLogout,
-};
+export { handleGoogleLogin, handleGoogleCallback, handleRefreshToken, handleLogout };

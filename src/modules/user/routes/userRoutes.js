@@ -6,7 +6,7 @@ import {
   deleteUser,
   getProfile,
 } from "../controller/userController.js";
-import authMiddleware from "../../../middleware/auth.js";
+import { authMiddleware } from "../../auth/index.js";
 
 const router = express.Router();
 
