@@ -27,16 +27,18 @@ const getSubscriptionByCreemId = async (creemSubscriptionId) => {
 };
 
 const updateStatusByCreemId = async (creemSubscriptionId, updateFields) => {
-  const before = await Subscription.findOneAndUpdate(
+  const before = await Subscription.findOne({ creemSubscriptionId });
+  if (!before) return null;
+
+  const after = await Subscription.findOneAndUpdate(
     { creemSubscriptionId },
     updateFields,
-    { new: false },
+    { new: true },
   );
-  if (!before) return null;
-  const afterDoc = { ...before.toObject(), ...updateFields };
+
   return {
     before: subscriptionToDTO(before),
-    after: subscriptionToDTO(afterDoc),
+    after: subscriptionToDTO(after),
   };
 };
 

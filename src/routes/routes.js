@@ -17,6 +17,7 @@ router.get("/", healthCheck);
 router.use("/user", userRouter);
 router.use("/auth", authRouter);
 router.use("/billing", billingRouter);
+
 router.use("/tasks", taskRoutes);
 
 export default router;

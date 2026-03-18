@@ -8,15 +8,18 @@ Add a new OAuth provider to BackendTemplate. Follow the project pattern strictly
 ## Auth Architecture
 
 ```
-src/
-├── providers/auth/          — OAuth HTTP integrations (one file = one provider)
-│   ├── google.js            — reference implementation
-│   └── index.js             — provider registry: PROVIDERS = { google, ... }
-├── auth/
-│   ├── authController.js    — HTTP handlers: login, callback, refresh, logout
-│   └── authRoutes.js        — routes for /auth/*
-├── services/authServices.js — JWT, state, findOrCreateUser, createSession
-└── utils/cookieOptions.js   — cookie config
+src/modules/auth/
+├── providers/              — OAuth HTTP integrations (one file = one provider)
+│   ├── google.js           — reference implementation
+│   └── index.js            — provider registry: PROVIDERS = { google, ... }
+├── controller/
+│   └── authController.js   — HTTP handlers: login, callback, refresh, logout
+├── routes/
+│   └── authRoutes.js       — routes for /auth/*
+├── services/
+│   └── authServices.js     — JWT, state, findOrCreateUser, createSession
+└── utils/
+    └── cookieOptions.js    — cookie config
 ```
 
 ## Provider Contract — Required Shape
@@ -47,11 +50,11 @@ Ask the user for:
 
 ## Step 2 — Study the Reference
 
-Read `src/providers/auth/google.js` — this is the template to follow.
+Read `src/modules/auth/providers/google.js` — this is the template to follow.
 
 ## Step 3 — Create the Provider File
 
-Create `src/providers/auth/<name>.js`:
+Create `src/modules/auth/providers/<name>.js`:
 
 ```js
 const { <NAME>_CLIENT_ID, <NAME>_CLIENT_SECRET, <NAME>_REDIRECT_URI } = process.env;
@@ -95,7 +98,7 @@ export default {
 
 ## Step 4 — Register in the Registry
 
-In `src/providers/auth/index.js` add one line:
+In `src/modules/auth/providers/index.js` add one line:
 
 ```js
 import <name> from "./<name>.js";
@@ -108,7 +111,7 @@ const PROVIDERS = {
 
 ## Step 5 — Add Handlers to the Controller
 
-In `src/controllers/authController.js` add two lines using the existing factory functions.
+In `src/modules/auth/controller/authController.js` add two lines using the existing factory functions.
 No boilerplate — the factories handle all the logic:
 
 ```js
@@ -116,15 +119,25 @@ const handle<Name>Login    = buildProviderLoginHandler("<name>");
 const handle<Name>Callback = buildProviderCallbackHandler("<name>");
 ```
 
-Add both to `export default { ..., handle<Name>Login, handle<Name>Callback }`.
+Add both to the named exports at the bottom of the file:
+
+```js
+export { ..., handle<Name>Login, handle<Name>Callback };
+```
 
 ## Step 6 — Add Routes
 
-In `src/routes/subroutes/authRoutes.js`:
+In `src/modules/auth/routes/authRoutes.js`:
 
+Import the new handlers:
 ```js
-router.get("/<name>",          authController.handle<Name>Login);
-router.get("/<name>/callback", authController.handle<Name>Callback);
+import { ..., handle<Name>Login, handle<Name>Callback } from "../controller/authController.js";
+```
+
+Add routes:
+```js
+router.get("/<name>",          handle<Name>Login);
+router.get("/<name>/callback", handle<Name>Callback);
 ```
 
 ## Step 7 — Add Environment Variables
