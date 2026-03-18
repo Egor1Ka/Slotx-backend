@@ -6,6 +6,7 @@
 - **Framework:** Express 5
 - **Database:** MongoDB + Mongoose
 - **Auth:** JWT + OAuth 2.0 (cookie-based)
+- **Billing:** creem.io (Merchant of Record) + creem SDK
 - **Functional utils:** Ramda
 
 ## Project Structure
@@ -14,19 +15,24 @@
 src/
 ├── app.js                        — Express entry point
 ├── db.js                         — MongoDB connection
-├── constants/validation.js       — Regex patterns (RE_EMAIL, RE_PHONE)
-├── models/                       — Mongoose schemas (User, RefreshToken)
+├── constants/
+│   ├── validation.js             — Regex patterns (RE_EMAIL, RE_PHONE)
+│   └── billing.js                — Plans, products, statuses, webhook map
+├── models/                       — Mongoose schemas (User, RefreshToken, Subscription, Payment)
 ├── repository/                   — DB access layer (raw Mongoose calls only)
-├── services/                     — Business logic (userServices, authServices)
-├── controllers/                  — HTTP handlers (userController, authController)
-├── middleware/auth.js            — JWT verification (Bearer header OR cookie)
+├── services/                     — Business logic (userServices, authServices, billingServices, planServices)
+│   └── billing/hooks.js          — Product lifecycle hooks (onActivate, onDeactivate, onRenew)
+├── controllers/                  — HTTP handlers (userController, authController, billingController)
+├── middleware/
+│   ├── auth.js                   — JWT verification (Bearer header OR cookie)
+│   └── plan.js                   — Plan/feature checking (requireFeature, requirePlan, attachPlan)
 ├── routes/
 │   ├── routes.js                 — Main router
-│   └── subroutes/                — userRoutes, authRoutes
-├── providers/auth/               — OAuth provider HTTP integrations (one file per provider)
-│   ├── google.js
-│   └── index.js                  — Provider registry: PROVIDERS = { google, ... }
-├── dto/                          — Response shape transformers
+│   └── subroutes/                — userRoutes, authRoutes, billingRoutes
+├── providers/
+│   ├── auth/                     — OAuth provider integrations (google.js + index.js)
+│   └── billing/                  — Billing provider integrations (creem.js + index.js)
+├── dto/                          — Response shape transformers (userDto, billingDto)
 └── utils/
     ├── fp.js                     — asyncPipe, pipe (Ramda)
     ├── cookieOptions.js          — Cookie config + parseDurationMs
@@ -91,6 +97,61 @@ Every provider must export an object with these 3 functions:
 ### How to add a new provider
 
 Используй скилл `/add-auth-provider` — он проведёт по всем шагам.
+
+## Billing Module
+
+### How it works
+
+Billing is powered by creem.io (Merchant of Record). Creem handles recurring payments, taxes, and compliance. We react to webhooks.
+
+```
+Frontend creates checkout → user pays on creem.io hosted page
+
+POST /api/billing/webhook (creem sends webhooks)
+  → verify HMAC signature → route by event_type
+  → checkout.completed: find user by email → create Payment + Subscription → run onActivate hook
+  → subscription.paid: update Subscription status → create Payment → run onRenew hook
+  → subscription.canceled/expired: update status → run onDeactivate hook
+```
+
+### Architecture: State Machine + Product Hooks
+
+Two layers:
+1. **State machine** — generic webhook processing, updates Subscription status in DB
+2. **Product hooks** — per-plan business logic in `src/services/billing/hooks.js`
+
+### File responsibilities
+
+| File | Responsibility |
+|------|----------------|
+| `src/constants/billing.js` | PLANS, PRODUCT_PLANS, PLAN_HIERARCHY, WEBHOOK_EVENT, statuses, WEBHOOK_STATUS_MAP |
+| `src/models/Subscription.js` | Current subscription state (mutable, one per user) |
+| `src/models/Payment.js` | Payment history (append-only, idempotent via creemEventId) |
+| `src/repository/subscriptionRepository.js` | DB operations for Subscription |
+| `src/repository/paymentRepository.js` | DB operations for Payment |
+| `src/providers/billing/creem.js` | creem SDK wrapper + HMAC signature verification |
+| `src/providers/billing/index.js` | Billing provider registry |
+| `src/services/billingServices.js` | Webhook event processing, state transitions |
+| `src/services/planServices.js` | Plan resolution (pure functions + DB orchestrators) |
+| `src/services/billing/hooks.js` | Product lifecycle hooks (onActivate, onDeactivate, onRenew) |
+| `src/controllers/billingController.js` | Webhook endpoint handler |
+| `src/routes/subroutes/billingRoutes.js` | POST /billing/webhook |
+| `src/middleware/plan.js` | requireFeature(), requirePlan(), attachPlan() |
+| `src/dto/billingDto.js` | Subscription/Payment DTO transforms |
+
+### How to add a new product
+
+Используй скилл `/add-billing-product` — он проведёт по всем шагам.
+
+### Plan middleware usage
+
+```js
+import { requireFeature, requirePlan, attachPlan } from "../middleware/plan.js";
+
+router.get("/export", authMiddleware, requireFeature("export"), handleExport);
+router.get("/dashboard", authMiddleware, attachPlan, handleDashboard);
+// req.plan = { key: "pro", features: {...}, limits: {...} }
+```
 
 ## HTTP Utilities
 

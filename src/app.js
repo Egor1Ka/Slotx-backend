@@ -9,16 +9,16 @@ const { PORT, FRONTEND_URL } = process.env;
 const app = express();
 
 app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+
+const apiPrefix = process.env.API_PREFIX ? `/${process.env.API_PREFIX}` : "";
+
+app.use(`${apiPrefix}/billing/webhook`, express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 connectDB();
 
-if (process.env.API_PREFIX) {
-  app.use(`/${process.env.API_PREFIX}`, routes);
-} else {
-  app.use(routes);
-}
+app.use(apiPrefix || "/", routes);
 
 app.set("trust proxy", true);
 

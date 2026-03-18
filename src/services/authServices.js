@@ -40,7 +40,7 @@ const findOrCreateUser = async (profile) => {
 
   if (existing) {
     if (!existing.avatar && profile.avatar) {
-      return userRepository.updateUser(existing._id, {
+      return userRepository.updateUser(existing.id, {
         avatar: profile.avatar,
       });
     }
@@ -53,7 +53,7 @@ const findOrCreateUser = async (profile) => {
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const buildAccessTokenPayload = (user, provider) => ({
-  id: user._id.toString(),
+  id: user.id,
   provider,
   email: user.email,
   name: user.name,
@@ -71,13 +71,13 @@ const buildRefreshTokenRecord = (userId, provider, providerUserId, token) => ({
 
 const createSession = async (user, provider, providerUserId) => {
   await refreshTokenRepository.deleteRefreshTokensByUserAndProvider(
-    user._id,
+    user.id,
     provider,
   );
 
   const refreshToken = crypto.randomBytes(REFRESH_BYTES).toString("hex");
   const record = buildRefreshTokenRecord(
-    user._id,
+    user.id,
     provider,
     providerUserId,
     refreshToken,

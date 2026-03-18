@@ -1,19 +1,23 @@
 import RefreshToken from "../models/RefreshToken.js";
+import authDto from "../dto/authDto.js";
 
 const createRefreshToken = async (data) => {
-  return await RefreshToken.create(data);
+  const doc = await RefreshToken.create(data);
+  return authDto.refreshTokenToDTO(doc);
 };
 
 const getRefreshTokenByToken = async (token) => {
-  return await RefreshToken.findOne({ token });
+  const doc = await RefreshToken.findOne({ token });
+  if (!doc) return null;
+  return authDto.refreshTokenToDTO(doc);
 };
 
 const deleteRefreshTokensByUserAndProvider = async (userId, provider) => {
-  return await RefreshToken.deleteMany({ userId, provider });
+  await RefreshToken.deleteMany({ userId, provider });
 };
 
 const deleteRefreshTokenByToken = async (token) => {
-  return await RefreshToken.deleteOne({ token });
+  await RefreshToken.deleteOne({ token });
 };
 
 export default {

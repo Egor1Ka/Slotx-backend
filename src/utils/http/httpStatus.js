@@ -11,3 +11,8 @@ export const userStatus = {
   VALIDATION_ERROR: { status: 400, message: "validationError" },
   NOTHING_TO_UPDATE:{ status: 400, message: "nothingToUpdate" },
 };
+
+export const billingStatus = {
+  FEATURE_LOCKED: { status: 403, message: "featureLocked" },
+  PLAN_REQUIRED:  { status: 403, message: "planRequired" },
+};

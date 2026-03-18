@@ -1,14 +1,10 @@
-const toDTO = (doc) => {
-  if (!doc) return null;
-  const data = doc.toObject ? doc.toObject() : doc;
-  return {
-    id: data._id?.toString(),
-    name: data.name,
-    email: data.email,
-    avatar: data.avatar,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-  };
-};
+const toDTO = (doc) => ({
+  id: doc._id.toString(),
+  name: doc.name,
+  email: doc.email,
+  avatar: doc.avatar,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
 
 export default { toDTO };

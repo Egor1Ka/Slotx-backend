@@ -6,7 +6,6 @@ import {
   isValidObjectId,
 } from "../utils/validation/validators.js";
 import userServices from "../services/userServices.js";
-import userDto from "../dto/userDto.js";
 
 const createUserSchema = {
   name: { type: "string", required: true },
@@ -44,7 +43,7 @@ const createUser = async (req, res) => {
     }
 
     const user = await userServices.createUser(validated);
-    httpResponse(res, generalStatus.SUCCESS, userDto.toDTO(user));
+    httpResponse(res, generalStatus.SUCCESS, user);
   } catch (error) {
     httpResponseError(res, error);
   }
@@ -64,7 +63,7 @@ const getUser = async (req, res) => {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
     }
-    httpResponse(res, generalStatus.SUCCESS, userDto.toDTO(user));
+    httpResponse(res, generalStatus.SUCCESS, user);
   } catch (error) {
     httpResponseError(res, error);
   }
@@ -99,7 +98,7 @@ const updateUser = async (req, res) => {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
     }
-    httpResponse(res, generalStatus.SUCCESS, userDto.toDTO(user));
+    httpResponse(res, generalStatus.SUCCESS, user);
   } catch (error) {
     httpResponseError(res, error);
   }
@@ -134,7 +133,7 @@ const getProfile = async (req, res) => {
       httpResponseError(res, generalStatus.NOT_FOUND);
       return;
     }
-    httpResponse(res, generalStatus.SUCCESS, userDto.toDTO(user));
+    httpResponse(res, generalStatus.SUCCESS, user);
   } catch (error) {
     httpResponseError(res, error);
   }
