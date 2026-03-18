@@ -15,30 +15,72 @@
 src/
 ├── app.js                        — Express entry point
 ├── db.js                         — MongoDB connection
-├── constants/
-│   ├── validation.js             — Regex patterns (RE_EMAIL, RE_PHONE)
-│   └── billing.js                — Plans, products, statuses, webhook map
-├── models/                       — Mongoose schemas (User, RefreshToken, Subscription, Payment)
-├── repository/                   — DB access layer (raw Mongoose calls only)
-├── services/                     — Business logic (userServices, authServices, billingServices, planServices)
-│   └── billing/hooks.js          — Product lifecycle hooks (onActivate, onDeactivate, onRenew)
-├── controllers/                  — HTTP handlers (userController, authController, billingController)
-├── middleware/
-│   ├── auth.js                   — JWT verification (Bearer header OR cookie)
-│   └── plan.js                   — Plan/feature checking (requireFeature, requirePlan, attachPlan)
+│
+├── modules/
+│   ├── user/
+│   │   ├── index.js              — public API (getUserById, getUser, createUser, updateUser, toUserDto, userRouter)
+│   │   ├── model/User.js
+│   │   ├── repository/userRepository.js
+│   │   ├── services/userServices.js
+│   │   ├── controller/userController.js
+│   │   ├── routes/userRoutes.js
+│   │   └── dto/userDto.js
+│   │
+│   ├── auth/
+│   │   ├── index.js              — public API (authMiddleware, verifyAccessToken, authRouter)
+│   │   ├── model/RefreshToken.js
+│   │   ├── repository/refreshTokenRepository.js
+│   │   ├── services/authServices.js
+│   │   ├── controller/authController.js
+│   │   ├── routes/authRoutes.js
+│   │   ├── dto/authDto.js
+│   │   ├── middleware/auth.js
+│   │   ├── constants/auth.js
+│   │   ├── utils/cookieOptions.js
+│   │   └── providers/ (google.js, index.js)
+│   │
+│   └── billing/
+│       ├── index.js              — public API (requireFeature, requirePlan, attachPlan, getUserPlan, billingRouter)
+│       ├── model/ (Subscription.js, Payment.js)
+│       ├── repository/ (subscriptionRepository.js, paymentRepository.js)
+│       ├── services/ (billingServices.js, planServices.js)
+│       ├── controller/billingController.js
+│       ├── routes/billingRoutes.js
+│       ├── dto/billingDto.js
+│       ├── middleware/plan.js
+│       ├── constants/billing.js
+│       ├── hooks/productHooks.js
+│       └── providers/ (creem.js, index.js)
+│
+├── models/Task.js                — example business model
+├── repository/taskRepository.js  — example
+├── services/taskServices.js      — example
+├── controllers/taskController.js — example
+├── middleware/taskMiddleware.js   — example
+├── dto/taskDto.js                — example
+├── constants/task.js             — example
+├── providers/exampleProvider.js  — example
 ├── routes/
-│   ├── routes.js                 — Main router
-│   └── subroutes/                — userRoutes, authRoutes, billingRoutes
-├── providers/
-│   ├── auth/                     — OAuth provider integrations (google.js + index.js)
-│   └── billing/                  — Billing provider integrations (creem.js + index.js)
-├── dto/                          — Response shape transformers (userDto, billingDto)
-└── utils/
-    ├── fp.js                     — asyncPipe, pipe (Ramda)
-    ├── cookieOptions.js          — Cookie config + parseDurationMs
-    ├── http/                     — httpResponse, httpError, httpStatus, httpUtils
-    └── validation/               — Schema validation engine
+│   ├── routes.js                 — main router (mounts modules + business routes)
+│   └── subroutes/taskRoutes.js   — example
+│
+└── shared/
+    ├── utils/
+    │   ├── fp.js                 — asyncPipe, pipe (Ramda)
+    │   ├── duration.js           — parseDurationMs
+    │   ├── http/ (httpResponse.js, httpError.js, httpStatus.js, httpUtils.js)
+    │   └── validation/ (requestValidation.js, validators.js)
+    └── constants/
+        └── validation.js         — Regex patterns (RE_EMAIL, RE_PHONE)
 ```
+
+## Module Isolation Rules
+
+1. **Inter-module imports only through `index.js`** — `import { X } from '../user/index.js'` is allowed; `import { X } from '../user/repository/...'` is forbidden
+2. **Intra-module imports are unrestricted** — files within the same module can import each other freely
+3. **`shared/` is for genuinely shared code** — if a utility is used by only one module, it lives inside that module
+4. **Root directories are for business logic** — `src/models/`, `src/services/`, etc. contain project-specific code, not module code
+5. **`routes/routes.js` is the single entry point** — mounts both module routers and business routers
 
 ## Auth Module
 
@@ -67,15 +109,15 @@ POST /api/auth/logout
 
 | File | Responsibility |
 |------|----------------|
-| `src/providers/auth/google.js` | HTTP calls to Google API — buildAuthUrl, exchangeCode, getProfile |
-| `src/providers/auth/index.js` | Provider registry — `PROVIDERS = { google }` |
-| `src/models/RefreshToken.js` | Mongoose schema — token, userId, provider, providerUserId, expiresAt |
-| `src/repository/refreshTokenRepository.js` | DB access for RefreshToken |
-| `src/services/authServices.js` | JWT creation/verification, OAuth state, findOrCreateUser, createSession |
-| `src/controllers/authController.js` | HTTP handlers — login, callback, refresh, logout |
-| `src/routes/subroutes/authRoutes.js` | Route definitions for /auth/* |
-| `src/middleware/auth.js` | JWT verification — reads from Bearer header OR accessToken cookie |
-| `src/utils/cookieOptions.js` | Cookie options + parseDurationMs |
+| `src/modules/auth/providers/google.js` | HTTP calls to Google API — buildAuthUrl, exchangeCode, getProfile |
+| `src/modules/auth/providers/index.js` | Provider registry — `PROVIDERS = { google }` |
+| `src/modules/auth/model/RefreshToken.js` | Mongoose schema — token, userId, provider, providerUserId, expiresAt |
+| `src/modules/auth/repository/refreshTokenRepository.js` | DB access for RefreshToken |
+| `src/modules/auth/services/authServices.js` | JWT creation/verification, OAuth state, findOrCreateUser, createSession |
+| `src/modules/auth/controller/authController.js` | HTTP handlers — login, callback, refresh, logout |
+| `src/modules/auth/routes/authRoutes.js` | Route definitions for /auth/* |
+| `src/modules/auth/middleware/auth.js` | JWT verification — reads from Bearer header OR accessToken cookie |
+| `src/modules/auth/utils/cookieOptions.js` | Cookie options + parseDurationMs |
 
 ### Provider contract
 
@@ -118,26 +160,26 @@ POST /api/billing/webhook (creem sends webhooks)
 
 Two layers:
 1. **State machine** — generic webhook processing, updates Subscription status in DB
-2. **Product hooks** — per-plan business logic in `src/services/billing/hooks.js`
+2. **Product hooks** — per-plan business logic in `src/modules/billing/hooks/productHooks.js`
 
 ### File responsibilities
 
 | File | Responsibility |
 |------|----------------|
-| `src/constants/billing.js` | PLANS, PRODUCT_PLANS, PLAN_HIERARCHY, WEBHOOK_EVENT, statuses, WEBHOOK_STATUS_MAP |
-| `src/models/Subscription.js` | Current subscription state (mutable, one per user) |
-| `src/models/Payment.js` | Payment history (append-only, idempotent via creemEventId) |
-| `src/repository/subscriptionRepository.js` | DB operations for Subscription |
-| `src/repository/paymentRepository.js` | DB operations for Payment |
-| `src/providers/billing/creem.js` | creem SDK wrapper + HMAC signature verification |
-| `src/providers/billing/index.js` | Billing provider registry |
-| `src/services/billingServices.js` | Webhook event processing, state transitions |
-| `src/services/planServices.js` | Plan resolution (pure functions + DB orchestrators) |
-| `src/services/billing/hooks.js` | Product lifecycle hooks (onActivate, onDeactivate, onRenew) |
-| `src/controllers/billingController.js` | Webhook endpoint handler |
-| `src/routes/subroutes/billingRoutes.js` | POST /billing/webhook |
-| `src/middleware/plan.js` | requireFeature(), requirePlan(), attachPlan() |
-| `src/dto/billingDto.js` | Subscription/Payment DTO transforms |
+| `src/modules/billing/constants/billing.js` | PLANS, PRODUCT_PLANS, PLAN_HIERARCHY, WEBHOOK_EVENT, statuses, WEBHOOK_STATUS_MAP |
+| `src/modules/billing/model/Subscription.js` | Current subscription state (mutable, one per user) |
+| `src/modules/billing/model/Payment.js` | Payment history (append-only, idempotent via creemEventId) |
+| `src/modules/billing/repository/subscriptionRepository.js` | DB operations for Subscription |
+| `src/modules/billing/repository/paymentRepository.js` | DB operations for Payment |
+| `src/modules/billing/providers/creem.js` | creem SDK wrapper + HMAC signature verification |
+| `src/modules/billing/providers/index.js` | Billing provider registry |
+| `src/modules/billing/services/billingServices.js` | Webhook event processing, state transitions |
+| `src/modules/billing/services/planServices.js` | Plan resolution (pure functions + DB orchestrators) |
+| `src/modules/billing/hooks/productHooks.js` | Product lifecycle hooks (onActivate, onDeactivate, onRenew) |
+| `src/modules/billing/controller/billingController.js` | Webhook endpoint handler |
+| `src/modules/billing/routes/billingRoutes.js` | POST /billing/webhook |
+| `src/modules/billing/middleware/plan.js` | requireFeature(), requirePlan(), attachPlan() |
+| `src/modules/billing/dto/billingDto.js` | Subscription/Payment DTO transforms |
 
 ### How to add a new product
 
@@ -146,7 +188,7 @@ Two layers:
 ### Plan middleware usage
 
 ```js
-import { requireFeature, requirePlan, attachPlan } from "../middleware/plan.js";
+import { requireFeature, requirePlan, attachPlan } from "../modules/billing/index.js";
 
 router.get("/export", authMiddleware, requireFeature("export"), handleExport);
 router.get("/dashboard", authMiddleware, attachPlan, handleDashboard);
@@ -156,6 +198,9 @@ router.get("/dashboard", authMiddleware, attachPlan, handleDashboard);
 ## HTTP Utilities
 
 ```js
+import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
+import { generalStatus } from "../shared/utils/http/httpStatus.js";
+
 // Send response
 httpResponse(res, generalStatus.SUCCESS, data)
 httpResponse(res, generalStatus.UNAUTHORIZED)
