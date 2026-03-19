@@ -1,5 +1,8 @@
 import creemProvider from "../providers/creem.js";
 import { processCheckoutCompleted, processSubscriptionEvent, processRefund, processDispute } from "../services/billingServices.js";
+import { getUserPlan } from "../services/planServices.js";
+import { getActiveSubscriptionByUserId } from "../repository/subscriptionRepository.js";
+import { getPaymentsByUserId } from "../repository/paymentRepository.js";
 import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import { WEBHOOK_EVENT } from "../constants/billing.js";
@@ -59,4 +62,64 @@ const handleWebhook = async (req, res) => {
   }
 };
 
-export { handleWebhook };
+// ── Plan / Subscription / Payments ───────────────────────────────────────────
+
+const getPlan = async (req, res) => {
+  try {
+    const plan = await getUserPlan(req.user.id);
+    httpResponse(res, generalStatus.SUCCESS, plan);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+const getSubscription = async (req, res) => {
+  try {
+    const subscription = await getActiveSubscriptionByUserId(req.user.id);
+    httpResponse(res, generalStatus.SUCCESS, subscription);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+const getPayments = async (req, res) => {
+  try {
+    const payments = await getPaymentsByUserId(req.user.id);
+    httpResponse(res, generalStatus.SUCCESS, payments);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+// ── Cancel ───────────────────────────────────────────────────────────────────
+
+const cancelSubscription = async (req, res) => {
+  try {
+    const subscription = await getActiveSubscriptionByUserId(req.user.id);
+
+    if (!subscription) {
+      httpResponse(res, generalStatus.NOT_FOUND, {
+        message: "No active subscription found",
+      });
+      return;
+    }
+
+    if (!creemProvider.creemClient) {
+      httpResponse(res, generalStatus.SERVER_ERROR, {
+        message: "Payment provider not configured",
+      });
+      return;
+    }
+
+    await creemProvider.creemClient.subscriptions.cancel(
+      subscription.creemSubscriptionId,
+      { mode: "scheduled", onExecute: "cancel" },
+    );
+
+    httpResponse(res, generalStatus.SUCCESS, subscription);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+export { handleWebhook, getPlan, getSubscription, getPayments, cancelSubscription };

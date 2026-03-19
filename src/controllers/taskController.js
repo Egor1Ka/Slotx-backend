@@ -4,17 +4,20 @@
 // Import shared utilities for responses and validation.
 // Copy this file and replace with your own entity's handlers.
 
-import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
-import { generalStatus } from "../shared/utils/http/httpStatus.js";
-import { validateSchema } from "../shared/utils/validation/requestValidation.js";
-import { isValidObjectId } from "../shared/utils/validation/validators.js";
 import {
   createTask,
+  deleteTask,
   getTaskById,
   getTasksByUserId,
   updateTask,
-  deleteTask,
 } from "../services/taskServices.js";
+import {
+  httpResponse,
+  httpResponseError,
+} from "../shared/utils/http/httpResponse.js";
+import { generalStatus } from "../shared/utils/http/httpStatus.js";
+import { validateSchema } from "../shared/utils/validation/requestValidation.js";
+import { isValidObjectId } from "../shared/utils/validation/validators.js";
 
 const createTaskSchema = {
   title: { type: "string", required: true },
@@ -31,7 +34,9 @@ const handleCreateTask = async (req, res) => {
   try {
     const validated = validateSchema(createTaskSchema, req.body);
     if (validated.errors) {
-      httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+      httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: validated.errors,
+      });
       return;
     }
 
@@ -79,7 +84,9 @@ const handleUpdateTask = async (req, res) => {
 
     const validated = validateSchema(updateTaskSchema, req.body);
     if (validated.errors) {
-      httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+      httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: validated.errors,
+      });
       return;
     }
 
@@ -116,8 +123,8 @@ const handleDeleteTask = async (req, res) => {
 
 export {
   handleCreateTask,
-  handleGetTask,
-  handleGetMyTasks,
-  handleUpdateTask,
   handleDeleteTask,
+  handleGetMyTasks,
+  handleGetTask,
+  handleUpdateTask,
 };

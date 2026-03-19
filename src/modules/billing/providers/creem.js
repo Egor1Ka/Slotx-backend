@@ -1,6 +1,9 @@
 import crypto from "crypto";
+import { Creem } from "creem";
 
-const { CREEM_WEBHOOK_SECRET } = process.env;
+const { CREEM_API_KEY, CREEM_WEBHOOK_SECRET } = process.env;
+
+const creemClient = CREEM_API_KEY ? new Creem({ apiKey: CREEM_API_KEY }) : null;
 
 // ── Webhook signature verification ───────────────────────────────────────────
 
@@ -14,4 +17,5 @@ const verifyWebhookSignature = (rawBody, signature) => {
 
 export default {
   verifyWebhookSignature,
+  creemClient,
 };
