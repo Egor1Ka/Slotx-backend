@@ -1,4 +1,4 @@
-import creemProvider from "../providers/creem.js";
+import billingProviders from "../providers/index.js";
 import { processCheckoutCompleted, processSubscriptionEvent, processRefund, processDispute } from "../services/billingServices.js";
 import { getUserPlan } from "../services/planServices.js";
 import { getActiveSubscriptionByUserId } from "../repository/subscriptionRepository.js";
@@ -6,6 +6,8 @@ import { getPaymentsByUserId } from "../repository/paymentRepository.js";
 import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import { WEBHOOK_EVENT } from "../constants/billing.js";
+
+const provider = billingProviders.getProvider();
 
 // ── Webhook event → handler mapping ──────────────────────────────────────────
 
@@ -29,7 +31,7 @@ const WEBHOOK_HANDLERS = {
 
 const handleWebhook = async (req, res) => {
   try {
-    const signature = req.headers["creem-signature"];
+    const signature = req.headers[provider.signatureHeader];
 
     if (!signature) {
       httpResponse(res, generalStatus.BAD_REQUEST);
@@ -40,22 +42,21 @@ const handleWebhook = async (req, res) => {
       ? req.body
       : req.body.toString("utf-8");
 
-    const isValid = creemProvider.verifyWebhookSignature(rawBody, signature);
+    const event = provider.parseWebhookEvent(rawBody, signature);
 
-    if (!isValid) {
+    if (!event) {
       httpResponse(res, generalStatus.BAD_REQUEST);
       return;
     }
 
-    const event = JSON.parse(rawBody);
-    const handler = WEBHOOK_HANDLERS[event.event_type];
+    const handler = WEBHOOK_HANDLERS[event.eventType];
 
     if (!handler) {
       httpResponse(res, generalStatus.SUCCESS);
       return;
     }
 
-    await handler(event.data || event);
+    await handler(event.data);
     httpResponse(res, generalStatus.SUCCESS);
   } catch (error) {
     httpResponseError(res, error);
@@ -104,15 +105,8 @@ const cancelSubscription = async (req, res) => {
       return;
     }
 
-    if (!creemProvider.creemClient) {
-      httpResponse(res, generalStatus.SERVER_ERROR, {
-        message: "Payment provider not configured",
-      });
-      return;
-    }
-
-    await creemProvider.creemClient.subscriptions.cancel(
-      subscription.creemSubscriptionId,
+    await provider.cancelSubscription(
+      subscription.providerSubscriptionId,
       { mode: "scheduled", onExecute: "cancel" },
     );
 

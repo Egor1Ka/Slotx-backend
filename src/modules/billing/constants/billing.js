@@ -1,13 +1,10 @@
 // ── Product → Plan mapping ───────────────────────────────────────────────────
-// Creem product IDs → internal plan keys
-// Add new products here as they are created in the creem dashboard
+// Provider product IDs → internal plan keys
+// Add new products here as they are created in the billing provider dashboard
 
 export const PRODUCT_PLANS = {
-  prod_starter_monthly: "starter",
-  prod_starter_yearly: "starter",
-  prod_pro_monthly: "pro",
-  prod_pro_yearly: "pro",
-  prod_lifetime: "pro",
+  prod_TkVdhx4EhreepQ0TwmrrL: "pro",
+  prod_4tHvpNEWtUFrf8LaGBqyh8: "starter",
 };
 
 // ── Plan hierarchy (weakest → strongest) ─────────────────────────────────────

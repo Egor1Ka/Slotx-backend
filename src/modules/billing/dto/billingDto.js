@@ -6,8 +6,8 @@ const formatOptionalId = (value) => {
 const subscriptionToDTO = (doc) => ({
   id: doc._id.toString(),
   userId: doc.userId.toString(),
-  creemSubscriptionId: doc.creemSubscriptionId,
-  creemCustomerId: doc.creemCustomerId,
+  providerSubscriptionId: doc.providerSubscriptionId,
+  providerCustomerId: doc.providerCustomerId,
   productId: doc.productId,
   planKey: doc.planKey,
   status: doc.status,
@@ -21,14 +21,14 @@ const subscriptionToDTO = (doc) => ({
 const paymentToDTO = (doc) => ({
   id: doc._id.toString(),
   userId: formatOptionalId(doc.userId),
-  creemSubscriptionId: doc.creemSubscriptionId,
-  creemEventId: doc.creemEventId,
+  providerSubscriptionId: doc.providerSubscriptionId,
+  providerEventId: doc.providerEventId,
   productId: doc.productId,
   type: doc.type,
   eventType: doc.eventType,
   amount: doc.amount,
   currency: doc.currency,
-  creemPayload: doc.creemPayload,
+  providerPayload: doc.providerPayload,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });

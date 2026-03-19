@@ -2,9 +2,9 @@ import Subscription from "../model/Subscription.js";
 import { ACCESS_GRANTING_STATUSES } from "../constants/billing.js";
 import { subscriptionToDTO } from "../dto/billingDto.js";
 
-const upsertByCreemSubscriptionId = async (creemSubscriptionId, data) => {
+const upsertByProviderSubscriptionId = async (providerSubscriptionId, data) => {
   const doc = await Subscription.findOneAndUpdate(
-    { creemSubscriptionId },
+    { providerSubscriptionId },
     data,
     { upsert: true, new: true },
   );
@@ -20,18 +20,18 @@ const getActiveSubscriptionByUserId = async (userId) => {
   return subscriptionToDTO(doc);
 };
 
-const getSubscriptionByCreemId = async (creemSubscriptionId) => {
-  const doc = await Subscription.findOne({ creemSubscriptionId });
+const getSubscriptionByProviderId = async (providerSubscriptionId) => {
+  const doc = await Subscription.findOne({ providerSubscriptionId });
   if (!doc) return null;
   return subscriptionToDTO(doc);
 };
 
-const updateStatusByCreemId = async (creemSubscriptionId, updateFields) => {
-  const before = await Subscription.findOne({ creemSubscriptionId });
+const updateStatusByProviderId = async (providerSubscriptionId, updateFields) => {
+  const before = await Subscription.findOne({ providerSubscriptionId });
   if (!before) return null;
 
   const after = await Subscription.findOneAndUpdate(
-    { creemSubscriptionId },
+    { providerSubscriptionId },
     updateFields,
     { new: true },
   );
@@ -42,4 +42,4 @@ const updateStatusByCreemId = async (creemSubscriptionId, updateFields) => {
   };
 };
 
-export { upsertByCreemSubscriptionId, getActiveSubscriptionByUserId, getSubscriptionByCreemId, updateStatusByCreemId };
+export { upsertByProviderSubscriptionId, getActiveSubscriptionByUserId, getSubscriptionByProviderId, updateStatusByProviderId };

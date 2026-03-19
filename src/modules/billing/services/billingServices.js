@@ -1,5 +1,5 @@
 import { getUser, getUserById } from "../../user/index.js";
-import { upsertByCreemSubscriptionId, getSubscriptionByCreemId, updateStatusByCreemId } from "../repository/subscriptionRepository.js";
+import { upsertByProviderSubscriptionId, getSubscriptionByProviderId, updateStatusByProviderId } from "../repository/subscriptionRepository.js";
 import { createPayment } from "../repository/paymentRepository.js";
 import { resolvePlanKey } from "./planServices.js";
 import { getHooksForPlan } from "../hooks/productHooks.js";
@@ -51,14 +51,14 @@ const createPaymentSafe = async (paymentData) => {
 
 const buildPaymentRecord = (userId, eventType, data) => ({
   userId,
-  creemSubscriptionId: data.subscription_id || null,
-  creemEventId: data.id,
+  providerSubscriptionId: data.subscription_id || null,
+  providerEventId: data.id,
   productId: data.product_id,
   type: isSubscriptionProduct(data) ? "subscription" : "one_time",
   eventType,
   amount: data.amount,
   currency: data.currency,
-  creemPayload: data,
+  providerPayload: data,
 });
 
 // ── Build extra fields for subscription update ───────────────────────────────
@@ -101,15 +101,15 @@ const processCheckoutCompleted = async (data) => {
   if (isSubscriptionProduct(data)) {
     const subscriptionData = {
       userId,
-      creemSubscriptionId: data.subscription_id,
-      creemCustomerId: data.customer_id,
+      providerSubscriptionId: data.subscription_id,
+      providerCustomerId: data.customer_id,
       productId: data.product_id,
       planKey,
       status: SUBSCRIPTION_STATUS.ACTIVE,
     };
 
     const subscription =
-      await upsertByCreemSubscriptionId(
+      await upsertByProviderSubscriptionId(
         data.subscription_id,
         subscriptionData,
       );
@@ -126,7 +126,7 @@ const processSubscriptionEvent = async (eventType, data) => {
 
   const updateFields = { status: newStatus, ...buildPeriodExtra(data) };
 
-  const result = await updateStatusByCreemId(
+  const result = await updateStatusByProviderId(
     data.subscription_id,
     updateFields,
   );
@@ -153,7 +153,7 @@ const processSubscriptionEvent = async (eventType, data) => {
 
 const buildSimpleEventProcessor = (eventType) => async (data) => {
   const existing = data.subscription_id
-    ? await getSubscriptionByCreemId(data.subscription_id)
+    ? await getSubscriptionByProviderId(data.subscription_id)
     : null;
   const userId = existing ? existing.userId : null;
   const paymentRecord = buildPaymentRecord(userId, eventType, data);
