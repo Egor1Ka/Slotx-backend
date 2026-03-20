@@ -1,0 +1,205 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1773991158410,
+  "projectRoot": "/Users/egorzozula/Desktop/BackendTemplate",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "express",
+        "version": "5.1.0",
+        "category": "backend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "nodemon --env-file=.env src/app.js"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": "ES modules",
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1773991158378,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 2,
+      "lastAccessed": 1773991158385,
+      "keyFiles": [
+        "app.js",
+        "db.js"
+      ]
+    },
+    "src/controllers": {
+      "path": "src/controllers",
+      "purpose": "Controllers",
+      "fileCount": 1,
+      "lastAccessed": 1773991158388,
+      "keyFiles": [
+        "taskController.js"
+      ]
+    },
+    "src/middleware": {
+      "path": "src/middleware",
+      "purpose": "Middleware",
+      "fileCount": 1,
+      "lastAccessed": 1773991158388,
+      "keyFiles": [
+        "taskMiddleware.js"
+      ]
+    },
+    "src/models": {
+      "path": "src/models",
+      "purpose": "Data models",
+      "fileCount": 1,
+      "lastAccessed": 1773991158389,
+      "keyFiles": [
+        "Task.js"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 8,
+      "lastAccessed": 1773995172341,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/constants/billing.js",
+      "accessCount": 7,
+      "lastAccessed": 1773997382559,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/services/billingServices.js",
+      "accessCount": 7,
+      "lastAccessed": 1773997978080,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/controller/billingController.js",
+      "accessCount": 5,
+      "lastAccessed": 1773997960446,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/services/planServices.js",
+      "accessCount": 4,
+      "lastAccessed": 1773996176870,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing",
+      "accessCount": 4,
+      "lastAccessed": 1773996871540,
+      "type": "directory"
+    },
+    {
+      "path": "src/modules/billing/middleware/plan.js",
+      "accessCount": 3,
+      "lastAccessed": 1773991562290,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/routes/billingRoutes.js",
+      "accessCount": 3,
+      "lastAccessed": 1773994714574,
+      "type": "file"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-20-frontend-billing-separation-design.md",
+      "accessCount": 3,
+      "lastAccessed": 1773996532635,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/hooks/productHooks.js",
+      "accessCount": 3,
+      "lastAccessed": 1773996720966,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/dto/billingDto.js",
+      "accessCount": 2,
+      "lastAccessed": 1773991270322,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/repository/paymentRepository.js",
+      "accessCount": 2,
+      "lastAccessed": 1773991557191,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/index.js",
+      "accessCount": 2,
+      "lastAccessed": 1773994716995,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 2,
+      "lastAccessed": 1773995080186,
+      "type": "directory"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-03-20-billing-product-separation.md",
+      "accessCount": 1,
+      "lastAccessed": 1773991172708,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/model/Order.js",
+      "accessCount": 1,
+      "lastAccessed": 1773991266366,
+      "type": "file"
+    },
+    {
+      "path": "src/modules/billing/repository/orderRepository.js",
+      "accessCount": 1,
+      "lastAccessed": 1773991332674,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
