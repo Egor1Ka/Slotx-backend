@@ -40,9 +40,9 @@ src/
 │   │   └── providers/ (google.js, index.js)
 │   │
 │   └── billing/
-│       ├── index.js              — public API (requireFeature, requirePlan, attachPlan, getUserPlan, billingRouter)
-│       ├── model/ (Subscription.js, Payment.js)
-│       ├── repository/ (subscriptionRepository.js, paymentRepository.js)
+│       ├── index.js              — public API (requireFeature, requirePlan, attachPlan, getUserBillingProfile, billingRouter)
+│       ├── model/ (Subscription.js, Payment.js, Order.js)
+│       ├── repository/ (subscriptionRepository.js, paymentRepository.js, orderRepository.js)
 │       ├── services/ (billingServices.js, planServices.js)
 │       ├── controller/billingController.js
 │       ├── routes/billingRoutes.js
@@ -151,7 +151,8 @@ Frontend creates checkout → user pays on creem.io hosted page
 
 POST /api/billing/webhook (creem sends webhooks)
   → verify HMAC signature → route by event_type
-  → checkout.completed: find user by email → create Payment + Subscription → run onActivate hook
+  → checkout.completed (subscription product): find user → create Payment + Subscription → run onActivate hook
+  → checkout.completed (one-time product): find user → create Payment + Order
   → subscription.paid: update Subscription status → create Payment → run onRenew hook
   → subscription.canceled/expired: update status → run onDeactivate hook
 ```
@@ -166,20 +167,22 @@ Two layers:
 
 | File | Responsibility |
 |------|----------------|
-| `src/modules/billing/constants/billing.js` | PLANS, PRODUCT_PLANS, PLAN_HIERARCHY, WEBHOOK_EVENT, statuses, WEBHOOK_STATUS_MAP |
+| `src/modules/billing/constants/billing.js` | SUBSCRIPTION_PRODUCTS, ONE_TIME_PRODUCTS, PRODUCTS, PLANS, PLAN_HIERARCHY, WEBHOOK_EVENT, statuses, WEBHOOK_STATUS_MAP |
 | `src/modules/billing/model/Subscription.js` | Current subscription state (mutable, one per user) |
-| `src/modules/billing/model/Payment.js` | Payment history (append-only, idempotent via creemEventId) |
+| `src/modules/billing/model/Payment.js` | Payment history (append-only, idempotent via providerEventId) |
+| `src/modules/billing/model/Order.js` | One-time product purchases (idempotent via providerOrderId) |
 | `src/modules/billing/repository/subscriptionRepository.js` | DB operations for Subscription |
 | `src/modules/billing/repository/paymentRepository.js` | DB operations for Payment |
+| `src/modules/billing/repository/orderRepository.js` | DB operations for Order |
 | `src/modules/billing/providers/creem.js` | creem SDK wrapper + HMAC signature verification |
 | `src/modules/billing/providers/index.js` | Billing provider registry |
-| `src/modules/billing/services/billingServices.js` | Webhook event processing, state transitions |
-| `src/modules/billing/services/planServices.js` | Plan resolution (pure functions + DB orchestrators) |
+| `src/modules/billing/services/billingServices.js` | Webhook event processing, checkout routing (subscription vs order) |
+| `src/modules/billing/services/planServices.js` | getUserBillingProfile — merges plan + product features/limits |
 | `src/modules/billing/hooks/productHooks.js` | Product lifecycle hooks (onActivate, onDeactivate, onRenew) |
-| `src/modules/billing/controller/billingController.js` | Webhook endpoint handler |
-| `src/modules/billing/routes/billingRoutes.js` | POST /billing/webhook |
+| `src/modules/billing/controller/billingController.js` | Webhook, plan, subscription, payments, orders handlers |
+| `src/modules/billing/routes/billingRoutes.js` | POST /billing/webhook, GET /plan, /subscription, /payments, /orders, POST /cancel |
 | `src/modules/billing/middleware/plan.js` | requireFeature(), requirePlan(), attachPlan() |
-| `src/modules/billing/dto/billingDto.js` | Subscription/Payment DTO transforms |
+| `src/modules/billing/dto/billingDto.js` | Subscription/Payment/Order DTO transforms |
 
 ### How to add a new product
 
@@ -192,7 +195,7 @@ import { requireFeature, requirePlan, attachPlan } from "../modules/billing/inde
 
 router.get("/export", authMiddleware, requireFeature("export"), handleExport);
 router.get("/dashboard", authMiddleware, attachPlan, handleDashboard);
-// req.plan = { key: "pro", features: {...}, limits: {...} }
+// req.plan = { key: "pro", features: {...}, limits: {...}, products: ["export_pack"] }
 ```
 
 ## HTTP Utilities

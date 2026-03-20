@@ -1,8 +1,9 @@
 import billingProviders from "../providers/index.js";
 import { processCheckoutCompleted, processSubscriptionEvent, processRefund, processDispute } from "../services/billingServices.js";
-import { getUserPlan } from "../services/planServices.js";
+import { getUserBillingProfile } from "../services/planServices.js";
 import { getActiveSubscriptionByUserId } from "../repository/subscriptionRepository.js";
 import { getPaymentsByUserId } from "../repository/paymentRepository.js";
+import { getOrdersByUserId } from "../repository/orderRepository.js";
 import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import { WEBHOOK_EVENT } from "../constants/billing.js";
@@ -45,30 +46,37 @@ const handleWebhook = async (req, res) => {
     const event = provider.parseWebhookEvent(rawBody, signature);
 
     if (!event) {
+      console.log("[webhook] parseWebhookEvent returned null");
       httpResponse(res, generalStatus.BAD_REQUEST);
       return;
     }
 
+    console.log("[webhook] eventType:", event.eventType);
+    console.log("[webhook] data:", JSON.stringify(event.data, null, 2));
+
     const handler = WEBHOOK_HANDLERS[event.eventType];
 
     if (!handler) {
+      console.log("[webhook] no handler for eventType:", event.eventType);
       httpResponse(res, generalStatus.SUCCESS);
       return;
     }
 
     await handler(event.data);
+    console.log("[webhook] handler completed for:", event.eventType);
     httpResponse(res, generalStatus.SUCCESS);
   } catch (error) {
+    console.error("[webhook] error:", error);
     httpResponseError(res, error);
   }
 };
 
-// ── Plan / Subscription / Payments ───────────────────────────────────────────
+// ── Plan / Subscription / Payments / Orders ─────────────────────────────────
 
 const getPlan = async (req, res) => {
   try {
-    const plan = await getUserPlan(req.user.id);
-    httpResponse(res, generalStatus.SUCCESS, plan);
+    const profile = await getUserBillingProfile(req.user.id);
+    httpResponse(res, generalStatus.SUCCESS, profile);
   } catch (error) {
     httpResponseError(res, error);
   }
@@ -87,6 +95,15 @@ const getPayments = async (req, res) => {
   try {
     const payments = await getPaymentsByUserId(req.user.id);
     httpResponse(res, generalStatus.SUCCESS, payments);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+const getOrders = async (req, res) => {
+  try {
+    const orders = await getOrdersByUserId(req.user.id);
+    httpResponse(res, generalStatus.SUCCESS, orders);
   } catch (error) {
     httpResponseError(res, error);
   }
@@ -116,4 +133,4 @@ const cancelSubscription = async (req, res) => {
   }
 };
 
-export { handleWebhook, getPlan, getSubscription, getPayments, cancelSubscription };
+export { handleWebhook, getPlan, getSubscription, getPayments, getOrders, cancelSubscription };

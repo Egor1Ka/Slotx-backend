@@ -1,4 +1,4 @@
-import { getUserPlan, planHasFeature } from "../services/planServices.js";
+import { getUserBillingProfile, planHasFeature } from "../services/planServices.js";
 import { httpResponse } from "../../../shared/utils/http/httpResponse.js";
 import { generalStatus, billingStatus } from "../../../shared/utils/http/httpStatus.js";
 import { PLAN_HIERARCHY } from "../constants/billing.js";
@@ -7,7 +7,7 @@ import { PLAN_HIERARCHY } from "../constants/billing.js";
 
 const ensurePlan = async (req) => {
   if (!req.plan) {
-    req.plan = await getUserPlan(req.user.id);
+    req.plan = await getUserBillingProfile(req.user.id);
   }
   return req.plan;
 };

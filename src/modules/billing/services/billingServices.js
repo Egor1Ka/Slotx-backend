@@ -1,9 +1,12 @@
 import { getUser, getUserById } from "../../user/index.js";
 import { upsertByProviderSubscriptionId, getSubscriptionByProviderId, updateStatusByProviderId } from "../repository/subscriptionRepository.js";
 import { createPayment } from "../repository/paymentRepository.js";
-import { resolvePlanKey } from "./planServices.js";
+import { createOrder } from "../repository/orderRepository.js";
+import { resolveSubscriptionPlanKey, resolveProductKey } from "./planServices.js";
 import { getHooksForPlan } from "../hooks/productHooks.js";
 import {
+  SUBSCRIPTION_PRODUCTS,
+  ONE_TIME_PRODUCTS,
   WEBHOOK_EVENT,
   WEBHOOK_STATUS_MAP,
   SUBSCRIPTION_STATUS,
@@ -11,8 +14,6 @@ import {
 } from "../constants/billing.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const isSubscriptionProduct = (data) => !!data.subscription_id;
 
 const isDuplicateKeyError = (error) => error.code === 11000;
 
@@ -28,6 +29,9 @@ const isRenewal = (oldStatus, newStatus) =>
   oldStatus === SUBSCRIPTION_STATUS.ACTIVE
   && newStatus === SUBSCRIPTION_STATUS.ACTIVE;
 
+const getPaymentType = (productId) =>
+  SUBSCRIPTION_PRODUCTS[productId] ? "subscription" : "one_time";
+
 // ── Run hook safely ──────────────────────────────────────────────────────────
 
 const tryRunHook = async (planKey, hookName, user, subscription) => {
@@ -40,7 +44,23 @@ const tryRunHook = async (planKey, hookName, user, subscription) => {
 
 const createPaymentSafe = async (paymentData) => {
   try {
-    return await createPayment(paymentData);
+    const result = await createPayment(paymentData);
+    return result;
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      console.log("[payment] duplicate, skipped. providerEventId:", paymentData.providerEventId);
+      return null;
+    }
+    console.error("[payment] error creating payment:", error.message);
+    throw error;
+  }
+};
+
+// ── Create order (idempotent) ────────────────────────────────────────────────
+
+const createOrderSafe = async (orderData) => {
+  try {
+    return await createOrder(orderData);
   } catch (error) {
     if (isDuplicateKeyError(error)) return null;
     throw error;
@@ -54,7 +74,7 @@ const buildPaymentRecord = (userId, eventType, data) => ({
   providerSubscriptionId: data.subscription_id || null,
   providerEventId: data.id,
   productId: data.product_id,
-  type: isSubscriptionProduct(data) ? "subscription" : "one_time",
+  type: getPaymentType(data.product_id),
   eventType,
   amount: data.amount,
   currency: data.currency,
@@ -88,37 +108,82 @@ const runTransitionHooks = async (oldStatus, newStatus, user, subscription) => {
   }
 };
 
-// ── Webhook processors ───────────────────────────────────────────────────────
+// ── Checkout processors ─────────────────────────────────────────────────────
 
-const processCheckoutCompleted = async (data) => {
+const processSubscriptionCheckout = async (data) => {
+  console.log("[subscription-checkout] product_id:", data.product_id);
+  console.log("[subscription-checkout] customer_email:", data.customer_email);
+  console.log("[subscription-checkout] subscription_id:", data.subscription_id);
+
   const user = await getUser({ email: data.customer_email });
   const userId = user ? user.id : null;
-  const planKey = resolvePlanKey(data.product_id);
+  console.log("[subscription-checkout] user found:", !!user, "userId:", userId);
+
+  const planKey = resolveSubscriptionPlanKey(data.product_id);
+  console.log("[subscription-checkout] planKey:", planKey);
+
+  const paymentRecord = buildPaymentRecord(userId, WEBHOOK_EVENT.CHECKOUT_COMPLETED, data);
+  console.log("[subscription-checkout] paymentRecord.providerEventId:", paymentRecord.providerEventId);
+  const payment = await createPaymentSafe(paymentRecord);
+  console.log("[subscription-checkout] payment created:", payment ? "yes" : "duplicate/skipped");
+
+  const subscriptionData = {
+    userId,
+    providerSubscriptionId: data.subscription_id,
+    providerCustomerId: data.customer_id,
+    productId: data.product_id,
+    planKey,
+    status: SUBSCRIPTION_STATUS.ACTIVE,
+  };
+
+  const subscription = await upsertByProviderSubscriptionId(
+    data.subscription_id,
+    subscriptionData,
+  );
+  console.log("[subscription-checkout] subscription upserted:", subscription ? "yes" : "no");
+
+  if (user) {
+    await tryRunHook(planKey, "onActivate", user, subscription);
+  }
+};
+
+const processOrderCheckout = async (data) => {
+  const user = await getUser({ email: data.customer_email });
+  const userId = user ? user.id : null;
+  const productKey = resolveProductKey(data.product_id);
 
   const paymentRecord = buildPaymentRecord(userId, WEBHOOK_EVENT.CHECKOUT_COMPLETED, data);
   await createPaymentSafe(paymentRecord);
 
-  if (isSubscriptionProduct(data)) {
-    const subscriptionData = {
-      userId,
-      providerSubscriptionId: data.subscription_id,
-      providerCustomerId: data.customer_id,
-      productId: data.product_id,
-      planKey,
-      status: SUBSCRIPTION_STATUS.ACTIVE,
-    };
+  const orderData = {
+    userId,
+    providerOrderId: data.id,
+    productKey,
+    providerProductId: data.product_id,
+    amount: data.amount,
+    currency: data.currency,
+    providerPayload: data,
+  };
 
-    const subscription =
-      await upsertByProviderSubscriptionId(
-        data.subscription_id,
-        subscriptionData,
-      );
-
-    if (user) {
-      await tryRunHook(planKey, "onActivate", user, subscription);
-    }
-  }
+  await createOrderSafe(orderData);
 };
+
+const processCheckoutCompleted = async (data) => {
+  console.log("[checkout] routing product_id:", data.product_id);
+  console.log("[checkout] is subscription?", !!SUBSCRIPTION_PRODUCTS[data.product_id]);
+  console.log("[checkout] is one-time?", !!ONE_TIME_PRODUCTS[data.product_id]);
+
+  if (SUBSCRIPTION_PRODUCTS[data.product_id]) {
+    return processSubscriptionCheckout(data);
+  }
+  if (ONE_TIME_PRODUCTS[data.product_id]) {
+    return processOrderCheckout(data);
+  }
+
+  console.log("[checkout] unknown product_id, skipping:", data.product_id);
+};
+
+// ── Subscription event processors ───────────────────────────────────────────
 
 const processSubscriptionEvent = async (eventType, data) => {
   const newStatus = WEBHOOK_STATUS_MAP[eventType];

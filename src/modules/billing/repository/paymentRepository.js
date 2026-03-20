@@ -13,13 +13,4 @@ const getPaymentsByUserId = async (userId, limit = 50) => {
   return docs.map(paymentToDTO);
 };
 
-const hasOneTimePurchase = async (userId, productId) => {
-  return await Payment.exists({ userId, productId, type: "one_time" });
-};
-
-const getOneTimePurchasesByUserId = async (userId) => {
-  const docs = await Payment.find({ userId, type: "one_time" });
-  return docs.map(paymentToDTO);
-};
-
-export { createPayment, getPaymentsByUserId, hasOneTimePurchase, getOneTimePurchasesByUserId };
+export { createPayment, getPaymentsByUserId };
