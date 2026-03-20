@@ -33,4 +33,16 @@ const paymentToDTO = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-export { subscriptionToDTO, paymentToDTO, formatOptionalId };
+const orderToDTO = (doc) => ({
+  id: doc._id.toString(),
+  userId: doc.userId.toString(),
+  providerOrderId: doc.providerOrderId,
+  productKey: doc.productKey,
+  providerProductId: doc.providerProductId,
+  amount: doc.amount,
+  currency: doc.currency,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
+export { subscriptionToDTO, paymentToDTO, orderToDTO, formatOptionalId };

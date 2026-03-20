@@ -51,8 +51,13 @@ const normalizeCheckout = (raw) => ({
 // Wire: { id, product, customer, last_transaction_id, last_transaction,
 //         current_period_start_date, current_period_end_date, canceled_at, ... }
 
+// Цепочка фолбэков для уникального ID события:
+//   1. last_transaction.order  — ID заказа (совпадает с checkout.completed → дедуплицирует начальный платёж)
+//   2. last_transaction_id     — ID транзакции (для продлений без ссылки на заказ)
+//   3. last_transaction.id     — то же, но во вложенном формате
+//   4. raw.id                  — ID подписки (события без транзакции, напр. subscription.active)
 const normalizeSubscription = (raw) => ({
-  id: raw.last_transaction_id || raw.last_transaction?.id || raw.id,
+  id: raw.last_transaction?.order || raw.last_transaction_id || raw.last_transaction?.id || raw.id,
   subscription_id: raw.id,
   customer_id: extractId(raw.customer),
   customer_email: extractEmail(raw.customer),

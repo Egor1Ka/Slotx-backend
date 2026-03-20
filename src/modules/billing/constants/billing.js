@@ -1,15 +1,53 @@
-// ── Product → Plan mapping ───────────────────────────────────────────────────
-// Provider product IDs → internal plan keys
-// Add new products here as they are created in the billing provider dashboard
+// ── Подписочные продукты → ключ плана ────────────────────────────────────────
+// Ключ — ID продукта из дашборда платёжки (Creem, Stripe и т.д.)
+// Значение — внутренний ключ плана, сохраняется в модели Subscription
+//
+// Чтобы добавить новый подписочный план:
+//   1. Создай recurring-продукт в дашборде платёжки
+//   2. Скопируй его product ID сюда как ключ
+//   3. Значение — ключ плана (должен совпадать с ключом в PLANS ниже)
+//   4. Добавь конфиг плана в PLANS и PLAN_HIERARCHY
 
-export const PRODUCT_PLANS = {
+export const SUBSCRIPTION_PRODUCTS = {
+  // ID продукта из платёжки   → ключ плана
   prod_TkVdhx4EhreepQ0TwmrrL: "pro",
-  prod_4tHvpNEWtUFrf8LaGBqyh8: "starter",
+};
+
+// ── Одноразовые продукты → ключ продукта ─────────────────────────────────────
+// Ключ — ID продукта из дашборда платёжки (Creem, Stripe и т.д.)
+// Значение — внутренний ключ продукта, сохраняется в модели Order
+//
+// Чтобы добавить новый одноразовый продукт:
+//   1. Создай one-time продукт в дашборде платёжки
+//   2. Скопируй его product ID сюда как ключ
+//   3. Значение — ключ продукта (должен совпадать с ключом в PRODUCTS ниже)
+//   4. Добавь конфиг продукта в PRODUCTS
+//   5. Добавь продукт в PRODUCT_DETAILS на фронте (billing-plan-tab.tsx)
+
+export const ONE_TIME_PRODUCTS = {
+  // ID продукта из платёжки   → ключ продукта
+  prod_4tHvpNEWtUFrf8LaGBqyh8: "export_pack",
+};
+
+// ── Определения продуктов (фичи и лимиты) ───────────────────────────────────
+// Каждый продукт даёт фичи и лимиты ПОВЕРХ базового плана пользователя.
+// Фичи мержатся через OR (если хоть один источник даёт true → фича доступна).
+// Лимиты мержатся через MAX (побеждает наибольшее значение).
+//
+// Ключ должен совпадать со значением в ONE_TIME_PRODUCTS выше.
+
+export const PRODUCTS = {
+  // ключ продукта — хранится в Order.productKey в базе
+  export_pack: {
+    name: "Export Pack",
+    features: { export: true },       // даёт фичу экспорта
+    limits: { storage: 5000 },        // даёт 5000 МБ хранилища
+  },
 };
 
 // ── Plan hierarchy (weakest → strongest) ─────────────────────────────────────
 
-export const PLAN_HIERARCHY = ["free", "starter", "pro"];
+export const PLAN_HIERARCHY = ["free", "pro"];
 
 // ── Plan features & limits ───────────────────────────────────────────────────
 
@@ -17,10 +55,6 @@ export const PLANS = {
   free: {
     features: { dashboard: true, export: false, apiAccess: false },
     limits: { projects: 3, storage: 100 },
-  },
-  starter: {
-    features: { dashboard: true, export: true, apiAccess: false },
-    limits: { projects: 20, storage: 5000 },
   },
   pro: {
     features: { dashboard: true, export: true, apiAccess: true },
