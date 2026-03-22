@@ -62,6 +62,36 @@ export const PLANS = {
   },
 };
 
+// ── Plan catalog (UI/checkout data) ────────────────────────────────────────
+// Price is in cents. Period is machine-readable ("month", "year").
+// productId is the payment provider's product ID (null for free plan).
+
+export const PLAN_CATALOG = {
+  free: {
+    price: 0,
+    currency: "USD",
+    period: "month",
+    productId: null,
+  },
+  pro: {
+    price: 2900,
+    currency: "USD",
+    period: "month",
+    productId: "prod_TkVdhx4EhreepQ0TwmrrL",
+  },
+};
+
+// ── Product catalog (UI/checkout data) ─────────────────────────────────────
+
+export const PRODUCT_CATALOG = {
+  export_pack: {
+    type: "one_time",
+    price: 900,
+    currency: "USD",
+    productId: "prod_4tHvpNEWtUFrf8LaGBqyh8",
+  },
+};
+
 // ── Subscription statuses ────────────────────────────────────────────────────
 
 export const SUBSCRIPTION_STATUS = {

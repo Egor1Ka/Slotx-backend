@@ -29,7 +29,7 @@ id: raw.last_transaction?.order || raw.last_transaction_id || raw.last_transacti
 
 ### 2. normalizeSubscriptionPayment — `subscription.paid`
 
-- **ID:** `raw.last_transaction.order` (order ID — совпадает с checkout для дедупликации начального платежа, уникален для renewals)
+- **ID:** `raw.last_transaction.order` → фолбэк `raw.last_transaction_id` → фолбэк `raw.id` (order ID приоритетнее — совпадает с checkout для дедупликации начального платежа, уникален для renewals. Фолбэки на случай если Creem не пришлёт order в транзакции)
 - **Платёжные данные:** amount, currency из last_transaction
 - **Период:** current_period_start/end
 - **Используется для:** создания Payment записи при продлении подписки
