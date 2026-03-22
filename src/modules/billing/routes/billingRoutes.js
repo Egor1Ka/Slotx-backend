@@ -1,10 +1,11 @@
 import express from "express";
-import { handleWebhook, getPlan, getSubscription, getPayments, getOrders, cancelSubscription } from "../controller/billingController.js";
+import { handleWebhook, getPlan, getSubscription, getPayments, getOrders, cancelSubscription, getCatalog } from "../controller/billingController.js";
 import { authMiddleware } from "../../auth/middleware/auth.js";
 
 const router = express.Router();
 
 router.post("/webhook", handleWebhook);
+router.get("/catalog", getCatalog);
 
 router.get("/plan", authMiddleware, getPlan);
 router.get("/subscription", authMiddleware, getSubscription);

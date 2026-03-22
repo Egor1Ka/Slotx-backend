@@ -6,7 +6,7 @@ import { getPaymentsByUserId } from "../repository/paymentRepository.js";
 import { getOrdersByUserId } from "../repository/orderRepository.js";
 import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
-import { WEBHOOK_EVENT } from "../constants/billing.js";
+import { WEBHOOK_EVENT, PLAN_HIERARCHY, PLAN_CATALOG, PRODUCT_CATALOG } from "../constants/billing.js";
 
 const provider = billingProviders.getProvider();
 
@@ -133,4 +133,19 @@ const cancelSubscription = async (req, res) => {
   }
 };
 
-export { handleWebhook, getPlan, getSubscription, getPayments, getOrders, cancelSubscription };
+// ── Catalog ───────────────────────────────────────────────────────────────────
+
+const getCatalog = (_req, res) => {
+  const toEntry = ([key, data]) => ({ key, ...data });
+
+  const catalog = {
+    plans: Object.entries(PLAN_CATALOG).map(toEntry),
+    products: Object.entries(PRODUCT_CATALOG).map(toEntry),
+    hierarchy: PLAN_HIERARCHY,
+  };
+
+  res.set("Cache-Control", "public, max-age=3600");
+  httpResponse(res, generalStatus.SUCCESS, catalog);
+};
+
+export { handleWebhook, getPlan, getSubscription, getPayments, getOrders, cancelSubscription, getCatalog };
