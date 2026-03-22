@@ -44,25 +44,41 @@ src/modules/billing/
 - `afterEach()` — drop all collections between tests
 - `after()` — stop MongoMemoryServer, disconnect mongoose
 
+### Environment Variables
+
+Before any billing module is imported, set test env vars:
+
+```js
+process.env.CREEM_PRODUCT_PRO = "test_product_pro";
+process.env.CREEM_PRODUCT_EXPORT_PACK = "test_product_export_pack";
+```
+
+This is required because `SUBSCRIPTION_PRODUCTS` and `ONE_TIME_PRODUCTS` in `constants/billing.js` are built from `process.env` at module load time. Without these values, product ID lookup silently fails and no subscription is created. Webhook payloads in tests must use these same values.
+
+`CREEM_API_KEY` and `CREEM_WEBHOOK_SECRET` are NOT needed because the provider module is fully replaced by a mock.
+
 ### Express App Assembly
 
 Build a minimal Express app for tests (not the full `app.js`):
 
-- `express.raw({ type: "application/json" })` on `/billing/webhook` (matches production config)
-- `express.json()` for other routes
-- Mount billing routes on `/billing`
-- No CORS, no cookie-parser (not needed for webhook tests)
+1. `express.raw({ type: "application/json" })` on `/billing/webhook` — **MUST be registered before `express.json()`**, matching production order in `app.js:15-16`. If reversed, `req.body` will be a parsed JSON object instead of a Buffer, and `req.body.toString("utf-8")` in the controller will produce `"[object Object]"`.
+2. `express.json()` for other routes
+3. Mount billing routes on `/billing`
+4. No CORS, no cookie-parser (not needed for webhook tests)
 
 ### Provider Mock
 
-The only mock: replace `parseWebhookEvent` to skip HMAC signature verification.
+The only mock: replace the entire `providers/creem.js` module to skip HMAC signature verification.
 
-The mocked version:
-1. Ignores the `signature` parameter
-2. Parses JSON body
-3. Runs the same normalizer logic as the real provider
+**Why full module replacement:** The controller resolves `const provider = billingProviders.getProvider()` at top-level module scope (line 11 of `billingController.js`). Also, `creem.js` reads `CREEM_WEBHOOK_SECRET` from `process.env` at load time — without it, `verifySignature` will crash on `crypto.createHmac("sha256", undefined)`. Patching after import does not work reliably with ES modules.
 
-Implementation: use `node:test` `mock.fn()` or module-level replacement before importing the controller.
+**Implementation:** Use `mock.module()` from `node:test` (available since Node 22.3) to replace `../providers/creem.js` before the controller is imported. The mock provider:
+
+1. Exports `signatureHeader: "creem-signature"`
+2. Exports `parseWebhookEvent(rawBody, _signature)` that skips signature verification, parses JSON, and runs the same normalizer logic
+3. Exports a stub `cancelSubscription` that throws (not tested)
+
+**Required Node version:** 22.3+ for `mock.module()`. Add `--experimental-test-module-mocks` flag if needed by your Node version.
 
 ## Test Cases
 
@@ -76,9 +92,15 @@ Implementation: use `node:test` `mock.fn()` or module-level replacement before i
 - Send webhook `checkout.completed`
 - Assert: Payment document exists with `type: "subscription"`, `eventType: "checkout.completed"`, correct `amount` and `currency`
 
-**1.3 Handles unknown user gracefully**
-- Send webhook `checkout.completed` with an email that has no matching user
-- Assert: Subscription created with `userId: null`, no error thrown
+**1.3 Rejects webhook when user not found**
+- Send webhook `checkout.completed` with an email that has no matching user in DB
+- Assert: Webhook returns 500 (Mongoose validation error because `Subscription.userId` is `required: true`)
+- Assert: No Subscription document created in DB
+- Note: This test documents current behavior — the model requires `userId`. If we later want to support unknown-user webhooks, both the model (`required: false`) and the DTO (`userId.toString()` crashes on null) need changes.
+
+**1.4 Duplicate checkout does not create duplicates**
+- Send the same `checkout.completed` webhook twice (same `subscription_id` and `providerEventId`)
+- Assert: Still only 1 Subscription and 1 Payment document in DB (upsert + idempotent payment creation)
 
 ### Group 2: Renewal (`subscription.paid`) — 3 tests
 
@@ -128,6 +150,15 @@ Builds a Creem-like webhook envelope:
 { eventType: "checkout.completed", object: { ...data } }
 ```
 
+**Minimum required fields per event type:**
+
+| Event | Required fields |
+|-------|----------------|
+| `checkout.completed` | `order.id`, `order.amount`, `order.currency`, `subscription` (string or `{ id }`), `customer.email`, `product` (string or `{ id }`) |
+| `subscription.paid` | `id` (= subscription_id), `product`, `customer`, `current_period_start_date`, `current_period_end_date`, `last_transaction.order`, `last_transaction.amount`, `last_transaction.currency` |
+| `subscription.canceled` | `id`, `product`, `customer`, `current_period_start_date`, `current_period_end_date`, `canceled_at` |
+| `subscription.scheduled_cancel` | `id`, `product`, `customer`, `current_period_start_date`, `current_period_end_date`, `canceled_at` |
+
 ### `sendWebhook(app, eventType, data)`
 
 Sends `POST /billing/webhook` with:
@@ -147,10 +178,12 @@ Add to `package.json`:
 
 ```json
 "scripts": {
-  "test": "node --test src/modules/billing/__tests__/billing.test.js",
-  "test:billing": "node --test src/modules/billing/__tests__/billing.test.js"
+  "test": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
+  "test:billing": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js"
 }
 ```
+
+**Requires Node 22.3+** for `mock.module()` support.
 
 ## What Is NOT Tested
 
