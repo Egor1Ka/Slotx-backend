@@ -1,33 +1,37 @@
+// Filters out entries with undefined env var keys to prevent "undefined" string keys
+const fromEnvEntries = (...entries) =>
+  Object.fromEntries(entries.filter(([productId]) => productId !== undefined));
+
 // ── Подписочные продукты → ключ плана ────────────────────────────────────────
-// Ключ — ID продукта из дашборда платёжки (Creem, Stripe и т.д.)
+// Ключ — ID продукта из .env (CREEM_PRODUCT_* переменные)
 // Значение — внутренний ключ плана, сохраняется в модели Subscription
 //
 // Чтобы добавить новый подписочный план:
 //   1. Создай recurring-продукт в дашборде платёжки
-//   2. Скопируй его product ID сюда как ключ
-//   3. Значение — ключ плана (должен совпадать с ключом в PLANS ниже)
-//   4. Добавь конфиг плана в PLANS и PLAN_HIERARCHY
+//   2. Добавь CREEM_PRODUCT_<KEY> в .env с product ID
+//   3. Добавь CREEM_PRODUCT_<KEY> плейсхолдер в .env.example
+//   4. Добавь запись в fromEnvEntries ниже
+//   5. Добавь конфиг плана в PLANS, PLAN_CATALOG и PLAN_HIERARCHY
 
-export const SUBSCRIPTION_PRODUCTS = {
-  // ID продукта из платёжки   → ключ плана
-  prod_TkVdhx4EhreepQ0TwmrrL: "pro",
-};
+export const SUBSCRIPTION_PRODUCTS = fromEnvEntries(
+  [process.env.CREEM_PRODUCT_PRO, "pro"],
+);
 
 // ── Одноразовые продукты → ключ продукта ─────────────────────────────────────
-// Ключ — ID продукта из дашборда платёжки (Creem, Stripe и т.д.)
+// Ключ — ID продукта из .env (CREEM_PRODUCT_* переменные)
 // Значение — внутренний ключ продукта, сохраняется в модели Order
 //
 // Чтобы добавить новый одноразовый продукт:
 //   1. Создай one-time продукт в дашборде платёжки
-//   2. Скопируй его product ID сюда как ключ
-//   3. Значение — ключ продукта (должен совпадать с ключом в PRODUCTS ниже)
-//   4. Добавь конфиг продукта в PRODUCTS
-//   5. Добавь i18n ключи на фронте (i18n/messages/{en,uk}.json → billing.products)
+//   2. Добавь CREEM_PRODUCT_<KEY> в .env с product ID
+//   3. Добавь CREEM_PRODUCT_<KEY> плейсхолдер в .env.example
+//   4. Добавь запись в fromEnvEntries ниже
+//   5. Добавь конфиг продукта в PRODUCTS и PRODUCT_CATALOG
+//   6. Добавь i18n ключи на фронте (i18n/messages/{en,uk}.json → billing.products)
 
-export const ONE_TIME_PRODUCTS = {
-  // ID продукта из платёжки   → ключ продукта
-  prod_4tHvpNEWtUFrf8LaGBqyh8: "export_pack",
-};
+export const ONE_TIME_PRODUCTS = fromEnvEntries(
+  [process.env.CREEM_PRODUCT_EXPORT_PACK, "export_pack"],
+);
 
 // ── Определения продуктов (фичи и лимиты) ───────────────────────────────────
 // Каждый продукт даёт фичи и лимиты ПОВЕРХ базового плана пользователя.
@@ -77,7 +81,7 @@ export const PLAN_CATALOG = {
     price: 2900,
     currency: "USD",
     period: "month",
-    productId: "prod_TkVdhx4EhreepQ0TwmrrL",
+    productId: process.env.CREEM_PRODUCT_PRO,
   },
 };
 
@@ -88,7 +92,7 @@ export const PRODUCT_CATALOG = {
     type: "one_time",
     price: 900,
     currency: "USD",
-    productId: "prod_4tHvpNEWtUFrf8LaGBqyh8",
+    productId: process.env.CREEM_PRODUCT_EXPORT_PACK,
   },
 };
 
