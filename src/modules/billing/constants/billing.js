@@ -96,6 +96,20 @@ export const PRODUCT_CATALOG = {
   },
 };
 
+// ── Startup validation ─────────────────────────────────────────────────────────
+
+const requiredProductEnvVars = [
+  "CREEM_PRODUCT_PRO",
+  "CREEM_PRODUCT_EXPORT_PACK",
+];
+
+const missingVars = requiredProductEnvVars.filter((key) => !process.env[key]);
+if (missingVars.length > 0) {
+  console.warn(
+    `⚠️ Missing billing product IDs: ${missingVars.join(", ")}. Billing features may not work correctly. Add them to .env`,
+  );
+}
+
 // ── Subscription statuses ────────────────────────────────────────────────────
 
 export const SUBSCRIPTION_STATUS = {
