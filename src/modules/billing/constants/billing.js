@@ -22,7 +22,7 @@ export const SUBSCRIPTION_PRODUCTS = {
 //   2. Скопируй его product ID сюда как ключ
 //   3. Значение — ключ продукта (должен совпадать с ключом в PRODUCTS ниже)
 //   4. Добавь конфиг продукта в PRODUCTS
-//   5. Добавь продукт в PRODUCT_DETAILS на фронте (billing-plan-tab.tsx)
+//   5. Добавь i18n ключи на фронте (i18n/messages/{en,uk}.json → billing.products)
 
 export const ONE_TIME_PRODUCTS = {
   // ID продукта из платёжки   → ключ продукта
@@ -59,6 +59,36 @@ export const PLANS = {
   pro: {
     features: { dashboard: true, export: true, apiAccess: true },
     limits: { projects: Infinity, storage: 50000 },
+  },
+};
+
+// ── Plan catalog (UI/checkout data) ────────────────────────────────────────
+// Price is in cents. Period is machine-readable ("month", "year").
+// productId is the payment provider's product ID (null for free plan).
+
+export const PLAN_CATALOG = {
+  free: {
+    price: 0,
+    currency: "USD",
+    period: "month",
+    productId: null,
+  },
+  pro: {
+    price: 2900,
+    currency: "USD",
+    period: "month",
+    productId: "prod_TkVdhx4EhreepQ0TwmrrL",
+  },
+};
+
+// ── Product catalog (UI/checkout data) ─────────────────────────────────────
+
+export const PRODUCT_CATALOG = {
+  export_pack: {
+    type: "one_time",
+    price: 900,
+    currency: "USD",
+    productId: "prod_4tHvpNEWtUFrf8LaGBqyh8",
   },
 };
 

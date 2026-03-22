@@ -19,24 +19,20 @@ const verifySignature = (rawBody, signature) => {
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 };
 
-// ── Field extractors ────────────────────────────────────────────────────────
-// Creem SDK types show that product/customer/subscription can be
-// either a full object or a plain string (ID). These helpers handle both.
+// ── Хелперы ─────────────────────────────────────────────────────────────────
+// Creem может прислать product/customer/subscription как объект или строку (ID).
+// Контракт из Creem SDK: product: ProductEntity | string, customer: CustomerEntity | string
 
-const extractId = (field) =>
-  typeof field === "object" && field !== null ? field.id : field || null;
+// Извлекает ID из поля, которое может быть объектом ({ id: "..." }) или строкой ("...").
+const extractId = (field) => field?.id ?? field ?? null;
 
-const extractEmail = (field) =>
-  typeof field === "object" && field !== null ? field.email : null;
-
-// ── Normalize CheckoutEntity → internal format ──────────────────────────────
-// Wire: { id, product, customer, subscription, order, status, ... }
-
+// ── checkout.completed ──────────────────────────────────────────────────────
+// Создаёт Payment + Order (one-time) или Payment + Subscription (recurring).
 const normalizeCheckout = (raw) => ({
-  id: raw.order?.id || raw.id,
+  id: raw.order?.id ?? raw.id,
   subscription_id: extractId(raw.subscription),
   customer_id: extractId(raw.customer),
-  customer_email: extractEmail(raw.customer),
+  customer_email: raw.customer?.email ?? null,
   product_id: extractId(raw.product),
   amount: raw.order?.amount,
   currency: raw.order?.currency,
@@ -47,20 +43,15 @@ const normalizeCheckout = (raw) => ({
   providerPayload: raw,
 });
 
-// ── Normalize SubscriptionEntity → internal format ──────────────────────────
-// Wire: { id, product, customer, last_transaction_id, last_transaction,
-//         current_period_start_date, current_period_end_date, canceled_at, ... }
-
-// Цепочка фолбэков для уникального ID события:
-//   1. last_transaction.order  — ID заказа (совпадает с checkout.completed → дедуплицирует начальный платёж)
-//   2. last_transaction_id     — ID транзакции (для продлений без ссылки на заказ)
-//   3. last_transaction.id     — то же, но во вложенном формате
-//   4. raw.id                  — ID подписки (события без транзакции, напр. subscription.active)
-const normalizeSubscription = (raw) => ({
-  id: raw.last_transaction?.order || raw.last_transaction_id || raw.last_transaction?.id || raw.id,
+// ── subscription.paid ────────────────────────────────────────────────────────
+// Создаёт Payment запись при продлении подписки.
+// ID = order ID из транзакции (дедуплицирует с checkout.completed для начального платежа).
+// Фолбэки: transaction ID → subscription ID (если Creem не пришлёт order).
+const normalizeSubscriptionPayment = (raw) => ({
+  id: raw.last_transaction?.order ?? raw.last_transaction_id ?? raw.last_transaction?.id ?? raw.id,
   subscription_id: raw.id,
   customer_id: extractId(raw.customer),
-  customer_email: extractEmail(raw.customer),
+  customer_email: raw.customer?.email ?? null,
   product_id: extractId(raw.product),
   amount: raw.last_transaction?.amount,
   currency: raw.last_transaction?.currency,
@@ -71,14 +62,81 @@ const normalizeSubscription = (raw) => ({
   providerPayload: raw,
 });
 
-// ── Event type → normalizer mapping ─────────────────────────────────────────
+// ── Статусные события подписки ───────────────────────────────────────────────
+// Общая база для событий, которые меняют статус подписки без платёжных данных.
+// active, canceled, expired, paused, past_due, scheduled_cancel
+const baseSubscriptionFields = (raw) => ({
+  id: raw.id,
+  subscription_id: raw.id,
+  customer_id: extractId(raw.customer),
+  customer_email: raw.customer?.email ?? null,
+  product_id: extractId(raw.product),
+  amount: null,
+  currency: null,
+  current_period_start: raw.current_period_start_date,
+  current_period_end: raw.current_period_end_date,
+  cancel_at: null,
+  status: raw.status,
+  providerPayload: raw,
+});
 
-const CHECKOUT_EVENT = "checkout.completed";
+const normalizeSubscriptionActive  = (raw) => baseSubscriptionFields(raw);
+const normalizeSubscriptionExpired = (raw) => baseSubscriptionFields(raw);
+const normalizeSubscriptionPaused  = (raw) => baseSubscriptionFields(raw);
+const normalizeSubscriptionPastDue = (raw) => baseSubscriptionFields(raw);
 
-const normalizeEventData = (eventType, raw) =>
-  eventType === CHECKOUT_EVENT
-    ? normalizeCheckout(raw)
-    : normalizeSubscription(raw);
+// canceled и scheduled_cancel — добавляют дату отмены
+const normalizeSubscriptionCanceled        = (raw) => ({ ...baseSubscriptionFields(raw), cancel_at: raw.canceled_at });
+const normalizeSubscriptionScheduledCancel = (raw) => ({ ...baseSubscriptionFields(raw), cancel_at: raw.canceled_at });
+
+// ── refund.created ──────────────────────────────────────────────────────────
+// Возврат средств. Создаёт Payment запись для учёта.
+const normalizeRefund = (raw) => ({
+  id: raw.id,
+  subscription_id: extractId(raw.subscription),
+  customer_id: extractId(raw.customer),
+  customer_email: raw.customer?.email ?? null,
+  product_id: extractId(raw.product),
+  amount: raw.amount,
+  currency: raw.currency,
+  current_period_start: null,
+  current_period_end: null,
+  cancel_at: null,
+  status: raw.status,
+  providerPayload: raw,
+});
+
+// ── dispute.created ─────────────────────────────────────────────────────────
+// Диспут (chargeback). Создаёт Payment запись для учёта.
+const normalizeDispute = (raw) => ({
+  id: raw.id,
+  subscription_id: extractId(raw.subscription),
+  customer_id: extractId(raw.customer),
+  customer_email: raw.customer?.email ?? null,
+  product_id: extractId(raw.product),
+  amount: raw.amount,
+  currency: raw.currency,
+  current_period_start: null,
+  current_period_end: null,
+  cancel_at: null,
+  status: raw.status,
+  providerPayload: raw,
+});
+
+// ── Event type → normalizer ─────────────────────────────────────────────────
+
+const EVENT_NORMALIZERS = {
+  "checkout.completed": normalizeCheckout,
+  "subscription.paid": normalizeSubscriptionPayment,
+  "subscription.active": normalizeSubscriptionActive,
+  "subscription.canceled": normalizeSubscriptionCanceled,
+  "subscription.expired": normalizeSubscriptionExpired,
+  "subscription.paused": normalizeSubscriptionPaused,
+  "subscription.past_due": normalizeSubscriptionPastDue,
+  "subscription.scheduled_cancel": normalizeSubscriptionScheduledCancel,
+  "refund.created": normalizeRefund,
+  "dispute.created": normalizeDispute,
+};
 
 // ── Parse full webhook event ────────────────────────────────────────────────
 // Creem envelope: { eventType: "...", object: { ... } }
@@ -90,9 +148,15 @@ const parseWebhookEvent = (rawBody, signature) => {
   const eventType = event.eventType || event.event_type;
   const eventData = event.object || event.data || event;
 
+  const normalize = EVENT_NORMALIZERS[eventType];
+
+  if (!normalize) {
+    return { eventType, data: eventData };
+  }
+
   return {
     eventType,
-    data: normalizeEventData(eventType, eventData),
+    data: normalize(eventData),
   };
 };
 
