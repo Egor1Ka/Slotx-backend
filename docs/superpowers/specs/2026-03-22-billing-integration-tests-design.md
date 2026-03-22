@@ -96,10 +96,11 @@ The only mock: replace the entire `providers/creem.js` module to skip HMAC signa
 - Send webhook `checkout.completed` with an email that has no matching user in DB
 - Assert: Webhook returns 500 (Mongoose validation error because `Subscription.userId` is `required: true`)
 - Assert: No Subscription document created in DB
+- Assert: 1 Payment document exists (payment is created before subscription save, and `Payment.userId` is not required — so the payment succeeds with `userId: null` before the subscription fails)
 - Note: This test documents current behavior — the model requires `userId`. If we later want to support unknown-user webhooks, both the model (`required: false`) and the DTO (`userId.toString()` crashes on null) need changes.
 
 **1.4 Duplicate checkout does not create duplicates**
-- Send the same `checkout.completed` webhook twice (same `subscription_id` and `providerEventId`)
+- Send the same `checkout.completed` webhook twice with identical payloads (same `subscription_id` and same `order.id` — `order.id` becomes `providerEventId` via the normalizer)
 - Assert: Still only 1 Subscription and 1 Payment document in DB (upsert + idempotent payment creation)
 
 ### Group 2: Renewal (`subscription.paid`) — 3 tests
