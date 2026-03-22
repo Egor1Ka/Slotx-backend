@@ -68,9 +68,9 @@ const normalizeSubscriptionPastDue = (raw) => baseSubscriptionFields(raw);
 const normalizeSubscriptionCanceled        = (raw) => ({ ...baseSubscriptionFields(raw), cancel_at: raw.canceled_at });
 const normalizeSubscriptionScheduledCancel = (raw) => ({ ...baseSubscriptionFields(raw), cancel_at: raw.canceled_at });
 
-// ── refund.created ──────────────────────────────────────────────────────────
-// Возврат средств. Создаёт Payment запись для учёта.
-const normalizeRefund = (raw) => ({
+// ── refund.created / dispute.created ─────────────────────────────────────────
+// Общая база для событий с суммой, но без периодов подписки (refund, dispute).
+const normalizeSimpleEvent = (raw) => ({
   id: raw.id,
   subscription_id: extractId(raw.subscription),
   customer_id: extractId(raw.customer),
@@ -85,22 +85,8 @@ const normalizeRefund = (raw) => ({
   providerPayload: raw,
 });
 
-// ── dispute.created ─────────────────────────────────────────────────────────
-// Диспут (chargeback). Создаёт Payment запись для учёта.
-const normalizeDispute = (raw) => ({
-  id: raw.id,
-  subscription_id: extractId(raw.subscription),
-  customer_id: extractId(raw.customer),
-  customer_email: raw.customer?.email ?? null,
-  product_id: extractId(raw.product),
-  amount: raw.amount,
-  currency: raw.currency,
-  current_period_start: null,
-  current_period_end: null,
-  cancel_at: null,
-  status: raw.status,
-  providerPayload: raw,
-});
+const normalizeRefund  = normalizeSimpleEvent;
+const normalizeDispute = normalizeSimpleEvent;
 
 // ── Event type → normalizer ─────────────────────────────────────────────────
 

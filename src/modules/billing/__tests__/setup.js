@@ -67,8 +67,13 @@ const getBaseUrl = () => {
   return `http://127.0.0.1:${port}`;
 };
 
+const closeServer = () =>
+  new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+
 const stopServer = async () => {
-  if (server) server.close();
+  if (server) await closeServer();
   await mongoose.disconnect();
   if (mongoServer) await mongoServer.stop();
 };
