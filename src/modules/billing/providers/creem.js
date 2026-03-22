@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { Creem } from "creem";
-import { EVENT_NORMALIZERS, extractId } from "./normalizers.js";
+import { EVENT_NORMALIZERS } from "./normalizers.js";
 
 const { CREEM_API_KEY, CREEM_WEBHOOK_SECRET } = process.env;
 
