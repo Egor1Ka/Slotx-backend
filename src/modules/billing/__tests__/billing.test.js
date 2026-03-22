@@ -1,26 +1,30 @@
-import { describe, it, before, after, afterEach } from "node:test";
+import { describe, it, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import { startServer, stopServer, clearCollections, getBaseUrl } from "./setup.js";
 import {
   createTestUser,
   createActiveSubscription,
   buildCheckoutPayload,
+  buildOneTimeCheckoutPayload,
   buildSubscriptionEventPayload,
   buildRenewalPayload,
   sendWebhook,
   TEST_PRODUCT_PRO,
+  TEST_PRODUCT_EXPORT_PACK,
   TEST_SUBSCRIPTION_ID,
+  TEST_ONE_TIME_ORDER_ID,
   TEST_EMAIL,
 } from "./helpers.js";
 import Subscription from "../model/Subscription.js";
 import Payment from "../model/Payment.js";
+import Order from "../model/Order.js";
 
 describe("Billing webhooks", () => {
   before(async () => {
     await startServer();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await clearCollections();
   });
 
@@ -207,6 +211,63 @@ describe("Billing webhooks", () => {
       );
       const activeSub = await getActiveSubscriptionByUserId(user._id);
       assert.equal(activeSub, null, "Canceled subscription should not be returned as active");
+    });
+  });
+
+  // ── Group 4: One-time purchase (checkout.completed) ───────────────────────
+
+  describe("one-time checkout.completed", () => {
+    it("4.1 creates order with correct productKey", async () => {
+      await createTestUser(TEST_EMAIL);
+      const payload = buildOneTimeCheckoutPayload();
+
+      const res = await sendWebhook(getBaseUrl(), "checkout.completed", payload);
+      assert.equal(res.statusCode, 200);
+
+      const order = await Order.findOne({ providerOrderId: TEST_ONE_TIME_ORDER_ID });
+      assert.ok(order, "Order should exist in DB");
+      assert.equal(order.productKey, "export_pack");
+      assert.equal(order.providerProductId, TEST_PRODUCT_EXPORT_PACK);
+      assert.equal(order.amount, 900);
+      assert.equal(order.currency, "USD");
+    });
+
+    it("4.2 creates payment with type one_time", async () => {
+      await createTestUser(TEST_EMAIL);
+      const payload = buildOneTimeCheckoutPayload();
+
+      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
+
+      const payment = await Payment.findOne({ providerEventId: TEST_ONE_TIME_ORDER_ID });
+      assert.ok(payment, "Payment should exist in DB");
+      assert.equal(payment.type, "one_time");
+      assert.equal(payment.eventType, "checkout.completed");
+      assert.equal(payment.amount, 900);
+      assert.equal(payment.currency, "USD");
+    });
+
+    it("4.3 duplicate one-time checkout does not create duplicates", async () => {
+      await createTestUser(TEST_EMAIL);
+      const payload = buildOneTimeCheckoutPayload();
+
+      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
+      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
+
+      const orderCount = await Order.countDocuments();
+      assert.equal(orderCount, 1, "Should have exactly 1 order");
+
+      const paymentCount = await Payment.countDocuments();
+      assert.equal(paymentCount, 1, "Should have exactly 1 payment");
+    });
+
+    it("4.4 does not create subscription for one-time product", async () => {
+      await createTestUser(TEST_EMAIL);
+      const payload = buildOneTimeCheckoutPayload();
+
+      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
+
+      const subCount = await Subscription.countDocuments();
+      assert.equal(subCount, 0, "No subscription should be created for one-time purchase");
     });
   });
 });

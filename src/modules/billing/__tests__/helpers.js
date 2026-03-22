@@ -5,9 +5,11 @@ import Subscription from "../model/Subscription.js";
 // ── Test constants ───────────────────────────────────────────────────────────
 
 const TEST_PRODUCT_PRO = "test_product_pro";
+const TEST_PRODUCT_EXPORT_PACK = "test_product_export_pack";
 const TEST_SUBSCRIPTION_ID = "sub_test_123";
 const TEST_CUSTOMER_ID = "cus_test_456";
 const TEST_ORDER_ID = "ord_test_789";
+const TEST_ONE_TIME_ORDER_ID = "ord_onetime_001";
 const TEST_EMAIL = "test@example.com";
 
 // ── User helper ──────────────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ const buildSubscriptionEventPayload = (overrides = {}) => {
     current_period_start_date: "2026-04-01T00:00:00Z",
     current_period_end_date: "2026-05-01T00:00:00Z",
     status: "active",
+    canceled_at: null,
   };
   return { ...defaults, ...overrides };
 };
@@ -69,6 +72,16 @@ const buildRenewalPayload = (overrides = {}) => ({
     ...(overrides.last_transaction || {}),
   },
 });
+
+const buildOneTimeCheckoutPayload = (overrides = {}) => {
+  const defaults = {
+    order: { id: TEST_ONE_TIME_ORDER_ID, amount: 900, currency: "USD" },
+    customer: { id: TEST_CUSTOMER_ID, email: TEST_EMAIL },
+    product: { id: TEST_PRODUCT_EXPORT_PACK },
+    status: "completed",
+  };
+  return { ...defaults, ...overrides };
+};
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 // Uses the persistent server started in setup.js (no server-per-request)
@@ -106,13 +119,16 @@ const sendWebhook = (baseUrl, eventType, objectData) => {
 
 export {
   TEST_PRODUCT_PRO,
+  TEST_PRODUCT_EXPORT_PACK,
   TEST_SUBSCRIPTION_ID,
   TEST_CUSTOMER_ID,
   TEST_ORDER_ID,
+  TEST_ONE_TIME_ORDER_ID,
   TEST_EMAIL,
   createTestUser,
   createActiveSubscription,
   buildCheckoutPayload,
+  buildOneTimeCheckoutPayload,
   buildSubscriptionEventPayload,
   buildRenewalPayload,
   sendWebhook,

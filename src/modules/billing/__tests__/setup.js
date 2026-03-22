@@ -1,7 +1,17 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { loadEnvFile } from "node:process";
 import mongoose from "mongoose";
 import express from "express";
 import { mock } from "node:test";
+
+// ── Load test environment ────────────────────────────────────────────────────
+try {
+  loadEnvFile(".env.test");
+} catch {
+  throw new Error("Missing .env.test file. Copy .env.test.example to .env.test");
+}
+
+const uri = process.env.TEST_MONGODB_URI;
+if (!uri) throw new Error("TEST_MONGODB_URI is required in .env.test");
 
 // ── Environment variables ────────────────────────────────────────────────────
 // Must be set before billing constants are imported (they read process.env at load time)
@@ -38,13 +48,10 @@ mock.module("../providers/creem.js", {
 
 // ── App builder ──────────────────────────────────────────────────────────────
 
-let mongoServer;
 let app;
 let server;
 
 const startServer = async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 
   // Import billing routes AFTER mock is registered and DB is connected
@@ -75,7 +82,6 @@ const closeServer = () =>
 const stopServer = async () => {
   if (server) await closeServer();
   await mongoose.disconnect();
-  if (mongoServer) await mongoServer.stop();
 };
 
 const clearCollections = async () => {
