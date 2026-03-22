@@ -22,7 +22,7 @@ export const SUBSCRIPTION_PRODUCTS = {
 //   2. Скопируй его product ID сюда как ключ
 //   3. Значение — ключ продукта (должен совпадать с ключом в PRODUCTS ниже)
 //   4. Добавь конфиг продукта в PRODUCTS
-//   5. Добавь продукт в PRODUCT_DETAILS на фронте (billing-plan-tab.tsx)
+//   5. Добавь i18n ключи на фронте (i18n/messages/{en,uk}.json → billing.products)
 
 export const ONE_TIME_PRODUCTS = {
   // ID продукта из платёжки   → ключ продукта
