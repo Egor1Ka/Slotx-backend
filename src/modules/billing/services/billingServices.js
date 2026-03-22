@@ -111,21 +111,18 @@ const runTransitionHooks = async (oldStatus, newStatus, user, subscription) => {
 // ── Checkout processors ─────────────────────────────────────────────────────
 
 const processSubscriptionCheckout = async (data) => {
-  console.log("[subscription-checkout] product_id:", data.product_id);
-  console.log("[subscription-checkout] customer_email:", data.customer_email);
-  console.log("[subscription-checkout] subscription_id:", data.subscription_id);
-
   const user = await getUser({ email: data.customer_email });
-  const userId = user ? user.id : null;
-  console.log("[subscription-checkout] user found:", !!user, "userId:", userId);
 
+  if (!user) {
+    console.warn("[subscription-checkout] no user found for email:", data.customer_email, "— skipping");
+    return;
+  }
+
+  const userId = user.id;
   const planKey = resolveSubscriptionPlanKey(data.product_id);
-  console.log("[subscription-checkout] planKey:", planKey);
 
   const paymentRecord = buildPaymentRecord(userId, WEBHOOK_EVENT.CHECKOUT_COMPLETED, data);
-  console.log("[subscription-checkout] paymentRecord.providerEventId:", paymentRecord.providerEventId);
-  const payment = await createPaymentSafe(paymentRecord);
-  console.log("[subscription-checkout] payment created:", payment ? "yes" : "duplicate/skipped");
+  await createPaymentSafe(paymentRecord);
 
   const subscriptionData = {
     userId,
@@ -140,11 +137,8 @@ const processSubscriptionCheckout = async (data) => {
     data.subscription_id,
     subscriptionData,
   );
-  console.log("[subscription-checkout] subscription upserted:", subscription ? "yes" : "no");
 
-  if (user) {
-    await tryRunHook(planKey, "onActivate", user, subscription);
-  }
+  await tryRunHook(planKey, "onActivate", user, subscription);
 };
 
 const processOrderCheckout = async (data) => {
@@ -169,10 +163,6 @@ const processOrderCheckout = async (data) => {
 };
 
 const processCheckoutCompleted = async (data) => {
-  console.log("[checkout] routing product_id:", data.product_id);
-  console.log("[checkout] is subscription?", !!SUBSCRIPTION_PRODUCTS[data.product_id]);
-  console.log("[checkout] is one-time?", !!ONE_TIME_PRODUCTS[data.product_id]);
-
   if (SUBSCRIPTION_PRODUCTS[data.product_id]) {
     return processSubscriptionCheckout(data);
   }
@@ -180,7 +170,7 @@ const processCheckoutCompleted = async (data) => {
     return processOrderCheckout(data);
   }
 
-  console.log("[checkout] unknown product_id, skipping:", data.product_id);
+  console.warn("[checkout] unknown product_id, skipping:", data.product_id);
 };
 
 // ── Subscription event processors ───────────────────────────────────────────

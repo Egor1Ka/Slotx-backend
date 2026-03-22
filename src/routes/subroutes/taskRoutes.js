@@ -19,7 +19,7 @@ const router = express.Router();
 
 router.post("/", authMiddleware, handleCreateTask);
 router.get("/my", authMiddleware, handleGetMyTasks);
-router.get("/:id", authMiddleware, handleGetTask);
+router.get("/:id", authMiddleware, requireTaskOwner, handleGetTask);
 router.put("/:id", authMiddleware, requireTaskOwner, handleUpdateTask);
 router.delete("/:id", authMiddleware, requireTaskOwner, handleDeleteTask);
 

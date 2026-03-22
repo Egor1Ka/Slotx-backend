@@ -51,8 +51,6 @@ const handleWebhook = async (req, res) => {
       return;
     }
 
-    console.log("[webhook] eventType:", event.eventType);
-    console.log("[webhook] data:", JSON.stringify(event.data, null, 2));
 
     const handler = WEBHOOK_HANDLERS[event.eventType];
 
