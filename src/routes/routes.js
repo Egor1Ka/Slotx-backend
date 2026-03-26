@@ -5,6 +5,12 @@ import { userRouter } from "../modules/user/index.js";
 import { authRouter } from "../modules/auth/index.js";
 import { billingRouter } from "../modules/billing/index.js";
 import taskRoutes from "./subroutes/taskRoutes.js";
+import staffRoutes from "./subroutes/staffRoutes.js";
+import eventTypeRoutes from "./subroutes/eventTypeRoutes.js";
+import scheduleRoutes from "./subroutes/scheduleRoutes.js";
+import slotRoutes from "./subroutes/slotRoutes.js";
+import bookingRoutes from "./subroutes/bookingRoutes.js";
+import orgRoutes from "./subroutes/orgRoutes.js";
 
 const healthCheck = (_req, res) => {
   httpResponse(res, generalStatus.SUCCESS, { message: "API is running" });
@@ -19,5 +25,12 @@ router.use("/auth", authRouter);
 router.use("/billing", billingRouter);
 
 router.use("/tasks", taskRoutes);
+
+router.use("/staff", staffRoutes);
+router.use("/event-types", eventTypeRoutes);
+router.use("/schedule", scheduleRoutes);
+router.use("/slots", slotRoutes);
+router.use("/bookings", bookingRoutes);
+router.use("/org", orgRoutes);
 
 export default router;
