@@ -1,16 +1,15 @@
-const buildFixedGrid = (workStart, workEnd, slotStep, duration) => {
-  const candidates = [];
-  const limit = workEnd - duration;
-  const addCandidate = (startMin) => {
-    if (startMin <= limit) candidates.push({ startMin, isExtra: false });
-  };
+const generateRange = (start, limit, step) => {
+  if (start > limit) return [];
+  return Array.from(
+    { length: Math.floor((limit - start) / step) + 1 },
+    (_, i) => start + i * step,
+  );
+};
 
-  let current = workStart;
-  while (current <= limit) {
-    addCandidate(current);
-    current = current + slotStep;
-  }
-  return candidates;
+const buildFixedGrid = (workStart, workEnd, slotStep, duration) => {
+  const limit = workEnd - duration;
+  const toCandidate = (startMin) => ({ startMin, isExtra: false });
+  return generateRange(workStart, limit, slotStep).map(toCandidate);
 };
 
 const isOnGrid = (startMin, workStart, slotStep) =>
@@ -37,33 +36,29 @@ const buildOptimalGrid = (workStart, workEnd, slotStep, duration, bookings) => {
   return [...merged].sort(byStartMin);
 };
 
+const buildSegmentCandidates = (from, until, limit, slotStep, duration) => {
+  const segmentLimit = Math.min(limit, until - duration);
+  const toCandidate = (startMin) => ({ startMin, isExtra: false });
+  return generateRange(from, segmentLimit, slotStep).map(toCandidate);
+};
+
 const buildDynamicGrid = (workStart, workEnd, slotStep, duration, bookings) => {
   const limit = workEnd - duration;
   const byStartMin = (a, b) => a.startMin - b.startMin;
   const sorted = [...bookings].sort(byStartMin);
 
-  const candidates = [];
-  let segmentStart = workStart;
-
-  const addSegmentSlots = (from, until) => {
-    let current = from;
-    while (current <= limit && current + duration <= until) {
-      candidates.push({ startMin: current, isExtra: false });
-      current = current + slotStep;
-    }
-  };
-
-  const processBooking = (booking) => {
+  const accumulate = (acc, booking) => {
     const bookingStart = booking.startMin;
     const bookingEnd = toBookingEnd(booking);
-    addSegmentSlots(segmentStart, bookingStart);
-    segmentStart = bookingEnd;
+    const segment = buildSegmentCandidates(acc.segmentStart, bookingStart, limit, slotStep, duration);
+    return { segmentStart: bookingEnd, candidates: [...acc.candidates, ...segment] };
   };
 
-  sorted.forEach(processBooking);
-  addSegmentSlots(segmentStart, workEnd);
+  const initial = { segmentStart: workStart, candidates: [] };
+  const result = sorted.reduce(accumulate, initial);
+  const trailing = buildSegmentCandidates(result.segmentStart, workEnd, limit, slotStep, duration);
 
-  return candidates;
+  return [...result.candidates, ...trailing];
 };
 
 const GRID_BUILDERS = {

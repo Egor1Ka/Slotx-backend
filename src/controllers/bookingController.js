@@ -36,8 +36,11 @@ const handleCreateBooking = async (req, res) => {
     if (booking.error === "eventType_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
+    if (booking.error === "invitee_contact_required") {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
 
-    return httpResponse(res, { status: 201, message: "created" }, booking);
+    return httpResponse(res, generalStatus.CREATED, booking);
   } catch (error) {
     return httpResponseError(res, error);
   }

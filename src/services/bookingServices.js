@@ -37,6 +37,10 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee 
   const conflict = await findConflict(staffId, startDate, endDate);
   if (conflict) throw new HttpError(bookingStatus.SLOT_TAKEN);
 
+  if (!invitee.email && !invitee.phone) {
+    return { error: "invitee_contact_required" };
+  }
+
   const inviteeDoc = await findOrCreateInvitee(invitee);
 
   const amount = eventType.price ? eventType.price.amount : 0;

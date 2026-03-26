@@ -1,5 +1,6 @@
 export const generalStatus = {
   SUCCESS: { status: 200, message: "success" },
+  CREATED: { status: 201, message: "created" },
   BAD_REQUEST: { status: 400, message: "badRequest" },
   UNAUTHORIZED: { status: 401, message: "unauthorized" },
   NOT_FOUND: { status: 404, message: "notFound" },

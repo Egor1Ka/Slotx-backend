@@ -44,9 +44,8 @@ const getOrgStaff = async (slug, dateStr) => {
   const members = await getActiveMembersByOrg(org.id);
   const dateRange = getDateRange(dateStr);
 
-  const profiles = await Promise.all(
-    members.map((member) => buildMemberProfile(member, dateRange)),
-  );
+  const toBuildProfile = (dateRange) => (member) => buildMemberProfile(member, dateRange);
+  const profiles = await Promise.all(members.map(toBuildProfile(dateRange)));
 
   return { staff: profiles.filter(isNotNull) };
 };

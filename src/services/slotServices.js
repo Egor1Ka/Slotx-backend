@@ -20,13 +20,23 @@ const getTimezoneOffsetMin = (date, timezone) => {
   return Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
 };
 
-const toBookingSlot = (template, booking) => {
+const toBookingSlot = (template, bufferAfter, booking) => {
   const startDate = new Date(booking.startAt);
   const tzOffset = getTimezoneOffsetMin(startDate, template.timezone);
   const startMin = startDate.getUTCHours() * 60 + startDate.getUTCMinutes() + tzOffset;
   const durationMs = booking.endAt.getTime() - booking.startAt.getTime();
-  const duration = Math.round(durationMs / 60000);
+  const duration = Math.round(durationMs / 60000) + bufferAfter;
   return { startMin, duration };
+};
+
+const resolveWorkWindow = (override, template, dayOfWeek) => {
+  if (override && override.enabled) {
+    if (!override.slots || override.slots.length === 0) return null;
+    return { workStart: parseHHMM(override.slots[0].start), workEnd: parseHHMM(override.slots[0].end) };
+  }
+  const dayEntry = template.weeklyHours.find((wh) => wh.day === dayOfWeek);
+  if (!dayEntry || !dayEntry.enabled || !dayEntry.slots || dayEntry.slots.length === 0) return null;
+  return { workStart: parseHHMM(dayEntry.slots[0].start), workEnd: parseHHMM(dayEntry.slots[0].end) };
 };
 
 const getNowMin = (timezone) => {
@@ -66,25 +76,16 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const requestDate = new Date(date);
   const dayOfWeek = WEEKDAY_INDEX[requestDate.getDay()];
 
-  let workStart;
-  let workEnd;
+  const workWindow = resolveWorkWindow(override, template, dayOfWeek);
+  if (!workWindow) return { slots: [] };
+  const { workStart, workEnd } = workWindow;
 
-  if (override && override.enabled) {
-    if (!override.slots || override.slots.length === 0) return { slots: [] };
-    workStart = parseHHMM(override.slots[0].start);
-    workEnd = parseHHMM(override.slots[0].end);
-  } else {
-    const dayEntry = template.weeklyHours.find((wh) => wh.day === dayOfWeek);
-    if (!dayEntry || !dayEntry.enabled) return { slots: [] };
-    if (!dayEntry.slots || dayEntry.slots.length === 0) return { slots: [] };
-    workStart = parseHHMM(dayEntry.slots[0].start);
-    workEnd = parseHHMM(dayEntry.slots[0].end);
-  }
+  const bufferAfter = eventType.bufferAfter || 0;
 
   const { dateStart, dateEnd } = getDateRange(date, template.timezone);
   const bookings = await findByStaffAndDate(staffId, dateStart, dateEnd);
 
-  const toBooking = (b) => toBookingSlot(template, b);
+  const toBooking = (b) => toBookingSlot(template, bufferAfter, b);
   const bookingSlots = bookings.map(toBooking);
 
   const slotStep = template.slotStepMin || eventType.slotStepMin || durationMin;
