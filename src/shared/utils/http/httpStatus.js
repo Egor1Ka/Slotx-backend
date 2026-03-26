@@ -16,3 +16,7 @@ export const billingStatus = {
   FEATURE_LOCKED: { status: 403, message: "featureLocked" },
   PLAN_REQUIRED:  { status: 403, message: "planRequired" },
 };
+
+export const bookingStatus = {
+  SLOT_TAKEN: { status: 409, message: "slotTaken" },
+};
