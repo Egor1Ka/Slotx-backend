@@ -1,12 +1,12 @@
-import { getOrgBySlug } from "../repository/organizationRepository.js";
+import { getOrgById } from "../repository/organizationRepository.js";
 import { getActiveMembersByOrg } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
 import { toOrgStaffDto } from "../dto/staffDto.js";
 
-const getOrganizationBySlug = async (slug) => {
-  return getOrgBySlug(slug);
+const getOrganizationById = async (id) => {
+  return getOrgById(id);
 };
 
 const getDateRange = (dateStr) => {
@@ -37,8 +37,8 @@ const buildMemberProfile = async (member, dateRange) => {
 
 const isNotNull = (item) => item !== null;
 
-const getOrgStaff = async (slug, dateStr) => {
-  const org = await getOrgBySlug(slug);
+const getOrgStaff = async (id, dateStr) => {
+  const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
   const members = await getActiveMembersByOrg(org.id);
@@ -50,4 +50,4 @@ const getOrgStaff = async (slug, dateStr) => {
   return { staff: profiles.filter(isNotNull) };
 };
 
-export { getOrganizationBySlug, getOrgStaff };
+export { getOrganizationById, getOrgStaff };

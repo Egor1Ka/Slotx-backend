@@ -3,7 +3,11 @@ import {
   getBookingsByStaff,
   cancelBookingById,
   cancelBookingByToken,
+  getBookingById,
+  updateBookingStatus as updateBookingStatusService,
+  rescheduleBookingById,
 } from "../services/bookingServices.js";
+import { toBookingCreatedDto } from "../dto/bookingDto.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -32,15 +36,16 @@ const handleCreateBooking = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
     }
 
-    const booking = await createBooking(req.body);
-    if (booking.error === "eventType_not_found") {
+    const result = await createBooking(req.body);
+    if (result.error === "eventType_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
-    if (booking.error === "invitee_contact_required") {
+    if (result.error === "invitee_contact_required") {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    return httpResponse(res, generalStatus.CREATED, booking);
+    const dto = toBookingCreatedDto(result.raw, result.eventType);
+    return httpResponse(res, generalStatus.CREATED, dto);
   } catch (error) {
     return httpResponseError(res, error);
   }
@@ -59,10 +64,13 @@ const handleGetBookingsByStaff = async (req, res) => {
 
     const statuses = status ? status.split(",") : undefined;
 
+    const endOfDay = new Date(dateTo);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const bookings = await getBookingsByStaff({
       staffId,
       dateFrom: new Date(dateFrom),
-      dateTo: new Date(dateTo),
+      dateTo: endOfDay,
       locationId: locationId || undefined,
       statuses,
     });
@@ -110,9 +118,74 @@ const handleCancelByToken = async (req, res) => {
   }
 };
 
+const handleGetBookingById = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+    const booking = await getBookingById(req.params.id);
+    if (!booking) return httpResponse(res, generalStatus.NOT_FOUND);
+    return httpResponse(res, generalStatus.SUCCESS, booking);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const ALLOWED_STATUS_TRANSITIONS = {
+  pending_payment: ["confirmed", "cancelled"],
+  confirmed: ["completed", "no_show", "cancelled"],
+};
+
+const handleUpdateStatus = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+    const { status } = req.body;
+    if (!status) return httpResponse(res, generalStatus.BAD_REQUEST);
+
+    const existing = await getBookingById(req.params.id);
+    if (!existing) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    const allowed = ALLOWED_STATUS_TRANSITIONS[existing.status];
+    if (!allowed || !allowed.includes(status)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const updated = await updateBookingStatusService(req.params.id, status);
+    return httpResponse(res, generalStatus.SUCCESS, updated);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleReschedule = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+    const { startAt } = req.body;
+    if (!startAt) return httpResponse(res, generalStatus.BAD_REQUEST);
+
+    const result = await rescheduleBookingById(req.params.id, startAt);
+    if (result && result.error === "booking_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    if (result && result.error === "eventType_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
 export {
   handleCreateBooking,
   handleGetBookingsByStaff,
   handleDeleteBooking,
   handleCancelByToken,
+  handleGetBookingById,
+  handleUpdateStatus,
+  handleReschedule,
 };

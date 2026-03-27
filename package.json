@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --env-file=.env src/app.js",
+    "seed": "node src/scripts/seed.js",
     "test": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
     "test:billing": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js"
   },

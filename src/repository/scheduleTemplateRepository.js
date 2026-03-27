@@ -1,11 +1,16 @@
 import ScheduleTemplate from "../models/ScheduleTemplate.js";
 import { toScheduleTemplateDto } from "../dto/scheduleDto.js";
 
+const buildTemplateQuery = (staffId, orgId, locationId) => {
+  const query = { staffId };
+  if (orgId !== undefined) query.orgId = orgId || null;
+  if (locationId !== undefined) query.locationId = locationId || null;
+  return query;
+};
+
 const findActiveTemplate = async (staffId, orgId, locationId, date) => {
   const query = {
-    staffId,
-    orgId: orgId || null,
-    locationId: locationId || null,
+    ...buildTemplateQuery(staffId, orgId, locationId),
     validFrom: { $lte: date },
     $or: [{ validTo: null }, { validTo: { $gte: date } }],
   };
@@ -16,9 +21,7 @@ const findActiveTemplate = async (staffId, orgId, locationId, date) => {
 
 const findCurrentTemplate = async (staffId, orgId, locationId) => {
   const doc = await ScheduleTemplate.findOne({
-    staffId,
-    orgId: orgId || null,
-    locationId: locationId || null,
+    ...buildTemplateQuery(staffId, orgId, locationId),
     validTo: null,
   });
   return doc;

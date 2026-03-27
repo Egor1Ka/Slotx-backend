@@ -16,6 +16,11 @@ const OrganizationSchema = new Schema(
      */
     name: { type: String, required: true },
 
+    /**
+     * Валюта организации.
+     */
+    currency: { type: String, enum: ["UAH", "USD"], default: "UAH" },
+
     settings: {
       /**
        * IANA timezone ("Europe/Kyiv").

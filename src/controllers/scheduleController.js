@@ -14,7 +14,7 @@ const handleGetTemplate = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const template = await getActiveTemplate(staffId, orgId || null, locationId || null, today);
+    const template = await getActiveTemplate(staffId, orgId, locationId, today);
     if (!template) return httpResponse(res, generalStatus.NOT_FOUND);
 
     return httpResponse(res, generalStatus.SUCCESS, template);
@@ -23,11 +23,22 @@ const handleGetTemplate = async (req, res) => {
   }
 };
 
+const weeklyHourSlotSchema = {
+  start: { type: "string", required: true },
+  end: { type: "string", required: true },
+};
+
+const weeklyHourItemSchema = {
+  day: { type: "string", required: true },
+  enabled: { type: "boolean", required: true },
+  slots: { type: "array", required: true, items: { type: "object", properties: weeklyHourSlotSchema } },
+};
+
 const putTemplateSchema = {
   staffId: { type: "string", required: true },
-  weeklyHours: { type: "array", required: true },
+  weeklyHours: { type: "array", required: true, items: { type: "object", properties: weeklyHourItemSchema } },
   slotMode: { type: "string", required: false },
-  slotStepMin: { type: "number", required: true },
+  slotStepMin: { type: "number", required: false },
 };
 
 const handlePutTemplate = async (req, res) => {

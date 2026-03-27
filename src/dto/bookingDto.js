@@ -33,4 +33,20 @@ const toBookingDto = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-export { toBookingDto };
+const toBookingCreatedDto = (doc, eventType) => ({
+  id: doc._id.toString(),
+  eventTypeId: doc.eventTypeId.toString(),
+  eventTypeName: eventType.name,
+  staffId: doc.hosts[0].userId.toString(),
+  startAt: doc.startAt,
+  endAt: doc.endAt,
+  timezone: doc.timezone,
+  locationId: doc.locationId ? doc.locationId.toString() : null,
+  status: doc.status,
+  cancelToken: doc.cancelToken,
+  invitee: toInviteeSnapshotDto(doc.inviteeSnapshot),
+  payment: toPaymentDto(doc.payment),
+  createdAt: doc.createdAt,
+});
+
+export { toBookingDto, toBookingCreatedDto };

@@ -17,4 +17,14 @@ const getActiveMembersByOrg = async (orgId) => {
   return docs;
 };
 
-export { getActiveMembership, getActiveMembersByOrg };
+const getMembershipsByUser = async (userId) => {
+  const docs = await Membership.find({ userId });
+  return docs;
+};
+
+const createMembership = async (data) => {
+  const doc = await Membership.create(data);
+  return doc;
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership };

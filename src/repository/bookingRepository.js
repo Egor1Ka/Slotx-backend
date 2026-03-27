@@ -32,7 +32,11 @@ const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, stat
     startAt: { $gte: dateFrom, $lte: dateTo },
   };
   if (locationId) query.locationId = locationId;
-  if (statuses) query.status = { $in: statuses };
+  if (statuses) {
+    query.status = { $in: statuses };
+  } else {
+    query.status = { $ne: BOOKING_STATUS.CANCELLED };
+  }
   const docs = await Booking.find(query).sort({ startAt: 1 });
   return docs.map(toBookingDto);
 };
@@ -71,6 +75,26 @@ const countConfirmedBookings = async (staffId, dateStart, dateEnd) => {
   return count;
 };
 
+const updateBookingStatus = async (id, status) => {
+  const doc = await Booking.findByIdAndUpdate(
+    id,
+    { status },
+    { new: true },
+  );
+  if (!doc) return null;
+  return toBookingDto(doc);
+};
+
+const rescheduleBooking = async (id, startAt, endAt) => {
+  const doc = await Booking.findByIdAndUpdate(
+    id,
+    { startAt, endAt },
+    { new: true },
+  );
+  if (!doc) return null;
+  return toBookingDto(doc);
+};
+
 export {
   createBooking,
   findConflict,
@@ -80,4 +104,6 @@ export {
   findBookingByToken,
   cancelBooking,
   countConfirmedBookings,
+  updateBookingStatus,
+  rescheduleBooking,
 };

@@ -1,11 +1,5 @@
 import Organization from "../models/Organization.js";
-import { toOrgDto } from "../dto/orgDto.js";
-
-const getOrgBySlug = async (slug) => {
-  const doc = await Organization.findOne({ slug });
-  if (!doc) return null;
-  return toOrgDto(doc);
-};
+import { toOrgDto, toOrgListItemDto } from "../dto/orgDto.js";
 
 const getOrgById = async (id) => {
   const doc = await Organization.findById(id);
@@ -13,4 +7,9 @@ const getOrgById = async (id) => {
   return toOrgDto(doc);
 };
 
-export { getOrgBySlug, getOrgById };
+const createOrg = async (data) => {
+  const doc = await Organization.create(data);
+  return toOrgDto(doc);
+};
+
+export { getOrgById, createOrg };

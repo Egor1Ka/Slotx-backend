@@ -3,7 +3,7 @@ import { handleGetOrg, handleGetOrgStaff } from "../../controllers/orgController
 
 const router = express.Router();
 
-router.get("/:slug", handleGetOrg);
-router.get("/:slug/staff", handleGetOrgStaff);
+router.get("/:id", handleGetOrg);
+router.get("/:id/staff", handleGetOrgStaff);
 
 export default router;

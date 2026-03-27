@@ -33,7 +33,7 @@ const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMod
     validTo: null,
     timezone: timezone || "UTC",
     slotMode: slotMode || "fixed",
-    slotStepMin,
+    slotStepMin: slotStepMin ?? 30,
     weeklyHours,
   });
 

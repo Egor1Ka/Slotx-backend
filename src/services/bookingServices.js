@@ -7,7 +7,10 @@ import {
   findBookingById,
   findBookingByToken,
   cancelBooking as repoCancel,
+  updateBookingStatus as repoUpdateStatus,
+  rescheduleBooking as repoReschedule,
 } from "../repository/bookingRepository.js";
+import { toBookingDto } from "../dto/bookingDto.js";
 import { findOrCreateInvitee } from "../repository/inviteeRepository.js";
 import {
   createBookingNotifications,
@@ -76,7 +79,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee 
   const rawBooking = await findBookingById(booking.id);
   await createBookingNotifications(rawBooking);
 
-  return booking;
+  return { raw: rawBooking, eventType };
 };
 
 const getBookingsByStaff = async (params) => {
@@ -101,4 +104,44 @@ const cancelBookingByToken = async (cancelToken, reason) => {
   return cancelled;
 };
 
-export { createBooking, getBookingsByStaff, cancelBookingById, cancelBookingByToken };
+const getBookingById = async (id) => {
+  const booking = await findBookingById(id);
+  if (!booking) return null;
+  return toBookingDto(booking);
+};
+
+const updateBookingStatus = async (id, status) => {
+  const booking = await findBookingById(id);
+  if (!booking) return null;
+  return repoUpdateStatus(id, status);
+};
+
+const rescheduleBookingById = async (id, newStartAt) => {
+  const booking = await findBookingById(id);
+  if (!booking) return { error: "booking_not_found" };
+
+  const eventType = await getEventTypeById(booking.eventTypeId.toString());
+  if (!eventType) return { error: "eventType_not_found" };
+
+  const durationMs = eventType.durationMin * 60 * 1000;
+  const startDate = new Date(newStartAt);
+  const endDate = new Date(startDate.getTime() + durationMs);
+
+  const staffId = booking.hosts[0].userId.toString();
+  const conflict = await findConflict(staffId, startDate, endDate);
+  if (conflict && conflict._id.toString() !== id) {
+    throw new HttpError(bookingStatus.SLOT_TAKEN);
+  }
+
+  return repoReschedule(id, startDate, endDate);
+};
+
+export {
+  createBooking,
+  getBookingsByStaff,
+  cancelBookingById,
+  cancelBookingByToken,
+  getBookingById,
+  updateBookingStatus,
+  rescheduleBookingById,
+};

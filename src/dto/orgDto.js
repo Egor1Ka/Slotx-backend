@@ -5,4 +5,12 @@ const toOrgDto = (doc) => ({
   logo: doc.settings ? doc.settings.logoUrl : null,
 });
 
-export { toOrgDto };
+const toOrgListItemDto = (org, membership) => ({
+  id: org._id.toString(),
+  name: org.name,
+  logo: org.settings ? org.settings.logoUrl || null : null,
+  role: membership.role,
+  status: membership.status,
+});
+
+export { toOrgDto, toOrgListItemDto };

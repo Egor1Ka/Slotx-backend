@@ -1,5 +1,4 @@
 import express from "express";
-import { authMiddleware } from "../../modules/auth/index.js";
 import {
   handleGetTemplate,
   handlePutTemplate,
@@ -9,7 +8,7 @@ import {
 const router = express.Router();
 
 router.get("/template", handleGetTemplate);
-router.put("/template", authMiddleware, handlePutTemplate);
-router.post("/override", authMiddleware, handlePostOverride);
+router.put("/template", handlePutTemplate);
+router.post("/override", handlePostOverride);
 
 export default router;
