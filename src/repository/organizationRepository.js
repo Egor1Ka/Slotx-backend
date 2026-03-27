@@ -7,9 +7,13 @@ const getOrgById = async (id) => {
   return toOrgDto(doc);
 };
 
+const getRawOrgById = async (id) => {
+  return Organization.findById(id);
+};
+
 const createOrg = async (data) => {
   const doc = await Organization.create(data);
   return toOrgDto(doc);
 };
 
-export { getOrgById, createOrg };
+export { getOrgById, getRawOrgById, createOrg };

@@ -1,11 +1,11 @@
-import { getOrgById, createOrg } from "../repository/organizationRepository.js";
+import crypto from "node:crypto";
+import { getOrgById, getRawOrgById, createOrg } from "../repository/organizationRepository.js";
 import { getActiveMembersByOrg, getMembershipsByUser, createMembership } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
 import { toOrgStaffDto } from "../dto/staffDto.js";
 import { toOrgListItemDto } from "../dto/orgDto.js";
-import Organization from "../models/Organization.js";
 import { MEMBERSHIP_STATUS } from "../constants/booking.js";
 
 const getOrganizationById = async (id) => {
@@ -55,7 +55,7 @@ const getOrgStaff = async (id, dateStr) => {
 
 const createOrganization = async (data, userId) => {
   const orgData = {
-    slug: `org-${Date.now()}`,
+    slug: `org-${crypto.randomUUID()}`,
     name: data.name,
     currency: data.currency || "UAH",
     settings: {
@@ -81,7 +81,7 @@ const createOrganization = async (data, userId) => {
 const getUserOrganizations = async (userId) => {
   const memberships = await getMembershipsByUser(userId);
   const toOrgWithRole = async (membership) => {
-    const org = await Organization.findById(membership.orgId);
+    const org = await getRawOrgById(membership.orgId);
     if (!org) return null;
     return toOrgListItemDto(org, membership);
   };
