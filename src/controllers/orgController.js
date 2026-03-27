@@ -1,6 +1,16 @@
-import { getOrganizationById, getOrgStaff } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
-import { generalStatus } from "../shared/utils/http/httpStatus.js";
+import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
+import { validateSchema } from "../shared/utils/validation/requestValidation.js";
+
+const createOrgSchema = {
+  name: { type: "string", required: true },
+  currency: { type: "string", required: false },
+  logoUrl: { type: "string", required: false },
+  brandColor: { type: "string", required: false },
+  defaultTimezone: { type: "string", required: false },
+  defaultCountry: { type: "string", required: false },
+};
 
 const handleGetOrg = async (req, res) => {
   try {
@@ -26,4 +36,29 @@ const handleGetOrgStaff = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff };
+const handleCreateOrg = async (req, res) => {
+  try {
+    const validated = validateSchema(createOrgSchema, req.body);
+    if (validated.errors) {
+      return httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: validated.errors,
+      });
+    }
+    const org = await createOrganization(validated, req.user.id);
+    return httpResponse(res, generalStatus.CREATED, org);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleGetUserOrgs = async (req, res) => {
+  try {
+    const orgs = await getUserOrganizations(req.user.id);
+    return httpResponse(res, generalStatus.SUCCESS, orgs);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs };

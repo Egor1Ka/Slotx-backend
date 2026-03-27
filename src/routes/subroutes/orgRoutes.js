@@ -1,8 +1,11 @@
 import express from "express";
-import { handleGetOrg, handleGetOrgStaff } from "../../controllers/orgController.js";
+import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs } from "../../controllers/orgController.js";
+import { authMiddleware } from "../../modules/auth/index.js";
 
 const router = express.Router();
 
+router.get("/user-orgs", authMiddleware, handleGetUserOrgs);
+router.post("/", authMiddleware, handleCreateOrg);
 router.get("/:id", handleGetOrg);
 router.get("/:id/staff", handleGetOrgStaff);
 

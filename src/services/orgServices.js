@@ -1,9 +1,12 @@
-import { getOrgById } from "../repository/organizationRepository.js";
-import { getActiveMembersByOrg } from "../repository/membershipRepository.js";
+import { getOrgById, createOrg } from "../repository/organizationRepository.js";
+import { getActiveMembersByOrg, getMembershipsByUser, createMembership } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
 import { toOrgStaffDto } from "../dto/staffDto.js";
+import { toOrgListItemDto } from "../dto/orgDto.js";
+import Organization from "../models/Organization.js";
+import { MEMBERSHIP_STATUS } from "../constants/booking.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
@@ -50,4 +53,40 @@ const getOrgStaff = async (id, dateStr) => {
   return { staff: profiles.filter(isNotNull) };
 };
 
-export { getOrganizationById, getOrgStaff };
+const createOrganization = async (data, userId) => {
+  const orgData = {
+    slug: `org-${Date.now()}`,
+    name: data.name,
+    currency: data.currency || "UAH",
+    settings: {
+      defaultTimezone: data.defaultTimezone || "Europe/Kyiv",
+      defaultCountry: data.defaultCountry || "UA",
+      brandColor: data.brandColor || undefined,
+      logoUrl: data.logoUrl || undefined,
+    },
+  };
+
+  const org = await createOrg(orgData);
+
+  await createMembership({
+    userId,
+    orgId: org.id,
+    role: "owner",
+    status: MEMBERSHIP_STATUS.ACTIVE,
+  });
+
+  return org;
+};
+
+const getUserOrganizations = async (userId) => {
+  const memberships = await getMembershipsByUser(userId);
+  const toOrgWithRole = async (membership) => {
+    const org = await Organization.findById(membership.orgId);
+    if (!org) return null;
+    return toOrgListItemDto(org, membership);
+  };
+  const orgs = await Promise.all(memberships.map(toOrgWithRole));
+  return orgs.filter(isNotNull);
+};
+
+export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations };
