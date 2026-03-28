@@ -1,6 +1,7 @@
 import {
   getEventTypeById as repoGetById,
   getEventTypesForStaff as repoGetForStaff,
+  getEventTypesByOrg as repoGetByOrg,
 } from "../repository/eventTypeRepository.js";
 import { getActiveMembership } from "../repository/membershipRepository.js";
 
@@ -14,4 +15,8 @@ const getEventTypesForStaff = async (staffId) => {
   return repoGetForStaff(staffId, orgId);
 };
 
-export { getEventTypeById, getEventTypesForStaff };
+const getEventTypesByOrg = async (orgId) => {
+  return repoGetByOrg(orgId);
+};
+
+export { getEventTypeById, getEventTypesForStaff, getEventTypesByOrg };

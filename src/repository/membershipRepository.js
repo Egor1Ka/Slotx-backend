@@ -27,4 +27,24 @@ const createMembership = async (data) => {
   return doc;
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership };
+// Находит активные членства организации по списку идентификаторов должностей
+const getActiveMembersByPositions = async (orgId, positionIds) => {
+  const docs = await Membership.find({
+    orgId,
+    positionId: { $in: positionIds },
+    status: MEMBERSHIP_STATUS.ACTIVE,
+  });
+  return docs;
+};
+
+// Находит активные членства организации по списку идентификаторов пользователей
+const getActiveMembersByUserIds = async (orgId, userIds) => {
+  const docs = await Membership.find({
+    orgId,
+    userId: { $in: userIds },
+    status: MEMBERSHIP_STATUS.ACTIVE,
+  });
+  return docs;
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds };

@@ -24,4 +24,9 @@ const getEventTypesForStaff = async (staffId, orgId) => {
   return docs.map(toEventTypeDto);
 };
 
-export { getEventTypeById, getEventTypesForStaff };
+const getEventTypesByOrg = async (orgId) => {
+  const docs = await EventType.find({ orgId, active: true });
+  return docs.map(toEventTypeDto);
+};
+
+export { getEventTypeById, getEventTypesForStaff, getEventTypesByOrg };

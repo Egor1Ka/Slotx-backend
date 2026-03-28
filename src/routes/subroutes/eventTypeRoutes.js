@@ -1,8 +1,9 @@
 import express from "express";
-import { handleGetEventTypes } from "../../controllers/eventTypeController.js";
+import { handleGetEventTypes, handleGetStaffForEventType } from "../../controllers/eventTypeController.js";
 
 const router = express.Router();
 
 router.get("/", handleGetEventTypes);
+router.get("/:id/staff", handleGetStaffForEventType);
 
 export default router;

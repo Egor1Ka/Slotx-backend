@@ -1,5 +1,6 @@
 import ScheduleTemplate from "../models/ScheduleTemplate.js";
 import { toScheduleTemplateDto } from "../dto/scheduleDto.js";
+import { getActiveMembersByOrg } from "./membershipRepository.js";
 
 const buildTemplateQuery = (staffId, orgId, locationId) => {
   const query = { staffId };
@@ -47,10 +48,25 @@ const findActiveTemplateDto = async (staffId, orgId, locationId, date) => {
   return toScheduleTemplateDto(doc);
 };
 
+const findActiveTemplatesByOrg = async (orgId, date) => {
+  const memberships = await getActiveMembersByOrg(orgId)
+  const userIds = memberships.map((m) => m.userId)
+
+  const templates = await ScheduleTemplate.find({
+    staffId: { $in: userIds },
+    orgId: orgId,
+    validFrom: { $lte: date },
+    $or: [{ validTo: null }, { validTo: { $gte: date } }],
+  }).lean()
+
+  return templates.map(toScheduleTemplateDto)
+}
+
 export {
   findActiveTemplate,
   findActiveTemplateDto,
   findCurrentTemplate,
   createTemplate,
   updateTemplateValidTo,
+  findActiveTemplatesByOrg,
 };
