@@ -1,4 +1,4 @@
-import { getActiveTemplate, rotateTemplate, upsertScheduleOverride } from "../services/scheduleServices.js";
+import { getActiveTemplate, rotateTemplate, upsertScheduleOverride, getActiveTemplatesByOrg } from "../services/scheduleServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -75,4 +75,17 @@ const handlePostOverride = async (req, res) => {
   }
 };
 
-export { handleGetTemplate, handlePutTemplate, handlePostOverride };
+const handleGetTemplatesByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params
+    if (!isValidObjectId(orgId)) {
+      return httpResponseError(res, { message: 'Invalid orgId' })
+    }
+    const templates = await getActiveTemplatesByOrg(orgId)
+    return httpResponse(res, generalStatus.SUCCESS, templates)
+  } catch (error) {
+    return httpResponseError(res, error)
+  }
+}
+
+export { handleGetTemplate, handlePutTemplate, handlePostOverride, handleGetTemplatesByOrg };

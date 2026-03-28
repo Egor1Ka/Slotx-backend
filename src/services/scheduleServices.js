@@ -3,6 +3,7 @@ import {
   findCurrentTemplate,
   createTemplate,
   updateTemplateValidTo,
+  findActiveTemplatesByOrg,
 } from "../repository/scheduleTemplateRepository.js";
 import { upsertOverride } from "../repository/scheduleOverrideRepository.js";
 
@@ -44,4 +45,10 @@ const upsertScheduleOverride = async (data) => {
   return upsertOverride(data);
 };
 
-export { getActiveTemplate, rotateTemplate, upsertScheduleOverride };
+const getActiveTemplatesByOrg = async (orgId) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return findActiveTemplatesByOrg(orgId, today)
+}
+
+export { getActiveTemplate, rotateTemplate, upsertScheduleOverride, getActiveTemplatesByOrg };
