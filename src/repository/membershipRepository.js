@@ -47,4 +47,12 @@ const getActiveMembersByUserIds = async (orgId, userIds) => {
   return docs;
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds };
+// Считает активные членства по идентификатору должности
+const countByPositionId = async (positionId) => {
+  return Membership.countDocuments({
+    positionId,
+    status: MEMBERSHIP_STATUS.ACTIVE,
+  });
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId };
