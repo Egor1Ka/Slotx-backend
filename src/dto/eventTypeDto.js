@@ -12,11 +12,19 @@ const toEventTypeDto = (doc) => ({
   durationMin: doc.durationMin,
   type: doc.type,
   color: doc.color,
+  description: doc.description || null,
   price: doc.price ? toPriceDto(doc.price) : null,
   bufferAfter: doc.bufferAfter,
   minNotice: doc.minNotice,
   slotStepMin: doc.slotStepMin,
   active: doc.active,
+  staffPolicy: doc.staffPolicy,
+  assignedPositions: doc.assignedPositions
+    ? doc.assignedPositions.map((id) => id.toString())
+    : [],
+  assignedStaff: doc.assignedStaff
+    ? doc.assignedStaff.map((id) => id.toString())
+    : [],
 });
 
 export { toEventTypeDto };

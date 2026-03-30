@@ -1,8 +1,14 @@
 import { getEventTypesForStaff, getEventTypesByOrg } from "../services/eventTypeServices.js";
 import { getStaffForEventType } from "../services/eventTypeStaffServices.js";
+import {
+  createEventType,
+  updateEventType,
+  deleteEventType,
+} from "../services/eventTypeService.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 
 const handleGetEventTypes = async (req, res) => {
   try {
@@ -43,4 +49,104 @@ const handleGetStaffForEventType = async (req, res) => {
   }
 };
 
-export { handleGetEventTypes, handleGetStaffForEventType };
+const createEventTypeSchema = {
+  name: { type: "string", required: true },
+  durationMin: { type: "number", required: true },
+  price: { type: "number", required: true },
+  currency: { type: "string", required: false, defaultValue: "UAH" },
+  color: { type: "string", required: false },
+  description: { type: "string", required: false },
+  staffPolicy: { type: "string", required: false, defaultValue: "any" },
+  assignedPositions: {
+    type: "array",
+    required: false,
+    items: { type: "string" },
+  },
+  assignedStaff: {
+    type: "array",
+    required: false,
+    items: { type: "string" },
+  },
+};
+
+const updateEventTypeSchema = {
+  name: { type: "string", required: false },
+  durationMin: { type: "number", required: false },
+  price: { type: "number", required: false },
+  currency: { type: "string", required: false },
+  color: { type: "string", required: false },
+  description: { type: "string", required: false },
+  staffPolicy: { type: "string", required: false },
+  assignedPositions: {
+    type: "array",
+    required: false,
+    items: { type: "string" },
+  },
+  assignedStaff: {
+    type: "array",
+    required: false,
+    items: { type: "string" },
+  },
+};
+
+const handleCreateEventType = async (req, res) => {
+  try {
+    const validated = validateSchema(createEventTypeSchema, req.body);
+    if (validated.errors) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: validated.errors,
+      });
+    }
+
+    const orgId = req.body.orgId;
+    if (!orgId || !isValidObjectId(orgId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const eventType = await createEventType(orgId, validated);
+    return httpResponse(res, generalStatus.CREATED, eventType);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleUpdateEventType = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const validated = validateSchema(updateEventTypeSchema, req.body);
+    if (validated.errors) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: validated.errors,
+      });
+    }
+
+    const eventType = await updateEventType(req.params.id, validated);
+    return httpResponse(res, generalStatus.SUCCESS, eventType);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeleteEventType = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    await deleteEventType(req.params.id);
+    return httpResponse(res, generalStatus.SUCCESS);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export {
+  handleGetEventTypes,
+  handleGetStaffForEventType,
+  handleCreateEventType,
+  handleUpdateEventType,
+  handleDeleteEventType,
+};

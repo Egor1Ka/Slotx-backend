@@ -29,4 +29,28 @@ const getEventTypesByOrg = async (orgId) => {
   return docs.map(toEventTypeDto);
 };
 
-export { getEventTypeById, getEventTypesForStaff, getEventTypesByOrg };
+const createEventType = async (data) => {
+  const doc = await EventType.create(data);
+  return toEventTypeDto(doc);
+};
+
+const updateEventType = async (id, update) => {
+  const doc = await EventType.findByIdAndUpdate(id, update, { new: true });
+  if (!doc) return null;
+  return toEventTypeDto(doc);
+};
+
+const deleteEventType = async (id) => {
+  const doc = await EventType.findByIdAndDelete(id);
+  if (!doc) return null;
+  return toEventTypeDto(doc);
+};
+
+export {
+  getEventTypeById,
+  getEventTypesForStaff,
+  getEventTypesByOrg,
+  createEventType,
+  updateEventType,
+  deleteEventType,
+};
