@@ -4,6 +4,7 @@ import {
   getUser as repoGetUser,
   updateUser as repoUpdateUser,
   deleteUser as repoDeleteUser,
+  searchUsersByEmail as repoSearchUsersByEmail,
 } from "../repository/userRepository.js";
 
 const createUser = async (data) => {
@@ -26,4 +27,8 @@ const deleteUser = async (id) => {
   return await repoDeleteUser(id);
 };
 
-export { createUser, getUserById, getUser, updateUser, deleteUser };
+const searchUsersByEmail = async (emailQuery, excludeUserIds, limit) => {
+  return await repoSearchUsersByEmail(emailQuery, excludeUserIds, limit);
+};
+
+export { createUser, getUserById, getUser, updateUser, deleteUser, searchUsersByEmail };

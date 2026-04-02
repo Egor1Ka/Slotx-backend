@@ -30,4 +30,14 @@ const deleteUser = async (id) => {
   return toUserDto(doc);
 };
 
-export { createUser, getUserById, getUser, updateUser, deleteUser };
+const searchUsersByEmail = async (emailQuery, excludeUserIds = [], limit = 10) => {
+  const regex = new RegExp(emailQuery, "i");
+  const docs = await User.find({
+    email: regex,
+    _id: { $nin: excludeUserIds },
+  }).limit(limit);
+  const toDto = (doc) => toUserDto(doc);
+  return docs.map(toDto);
+};
+
+export { createUser, getUserById, getUser, updateUser, deleteUser, searchUsersByEmail };
