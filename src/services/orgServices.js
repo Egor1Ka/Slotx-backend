@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { getOrgById, getRawOrgById, createOrg } from "../repository/organizationRepository.js";
-import { getActiveMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
@@ -35,7 +35,7 @@ const buildMemberProfile = async (member, dateRange) => {
     dateRange.end,
   );
 
-  return toOrgStaffDto(user, position, bookingCount);
+  return toOrgStaffDto(user, position, bookingCount, member.status);
 };
 
 const isNotNull = (item) => item !== null;
@@ -44,7 +44,7 @@ const getOrgStaff = async (id, dateStr) => {
   const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
-  const members = await getActiveMembersByOrg(org.id);
+  const members = await getActiveAndInvitedMembersByOrg(org.id);
   const dateRange = getDateRange(dateStr);
 
   const toBuildProfile = (dateRange) => (member) => buildMemberProfile(member, dateRange);
@@ -107,7 +107,7 @@ const addStaffToOrg = async (orgId, userId, invitedByUserId) => {
     invitedBy: invitedByUserId,
   });
 
-  return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bookingCount: 0 } };
+  return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bookingCount: 0, status: "invited" } };
 };
 
 export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg };

@@ -55,6 +55,14 @@ const countByPositionId = async (positionId) => {
   });
 };
 
+const getActiveAndInvitedMembersByOrg = async (orgId) => {
+  const docs = await Membership.find({
+    orgId,
+    status: { $in: [MEMBERSHIP_STATUS.ACTIVE, MEMBERSHIP_STATUS.INVITED] },
+  });
+  return docs;
+};
+
 // Возвращает userId всех членов организации (активных, приглашённых и приостановленных)
 const getMemberUserIdsByOrg = async (orgId) => {
   const docs = await Membership.find({
@@ -70,4 +78,4 @@ const getMembershipByUserAndOrg = async (userId, orgId) => {
   return Membership.findOne({ userId, orgId });
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg };
+export { getActiveMembership, getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg };

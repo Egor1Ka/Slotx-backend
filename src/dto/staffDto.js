@@ -9,12 +9,13 @@ const toStaffDto = (user, position, membership) => ({
   locationIds: membership ? membership.locationIds.map(toString) : [],
 });
 
-const toOrgStaffDto = (user, position, bookingCount) => ({
+const toOrgStaffDto = (user, position, bookingCount, status) => ({
   id: user.id,
   name: user.name,
   avatar: user.avatar,
   position: position ? position.name : null,
   bookingCount,
+  status: status || "active",
 });
 
 export { toStaffDto, toOrgStaffDto };
