@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { getOrgById, getRawOrgById, createOrg } from "../repository/organizationRepository.js";
-import { getActiveMembersByOrg, getMembershipsByUser, createMembership } from "../repository/membershipRepository.js";
+import { getActiveMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
@@ -89,4 +89,25 @@ const getUserOrganizations = async (userId) => {
   return orgs.filter(isNotNull);
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations };
+const addStaffToOrg = async (orgId, userId, invitedByUserId) => {
+  const org = await getOrgById(orgId);
+  if (!org) return { error: "org_not_found" };
+
+  const user = await getUserById(userId);
+  if (!user) return { error: "user_not_found" };
+
+  const existing = await getMembershipByUserAndOrg(userId, orgId);
+  if (existing) return { error: "already_member" };
+
+  const membership = await createMembership({
+    userId,
+    orgId,
+    role: "member",
+    status: MEMBERSHIP_STATUS.INVITED,
+    invitedBy: invitedByUserId,
+  });
+
+  return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bookingCount: 0 } };
+};
+
+export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg };

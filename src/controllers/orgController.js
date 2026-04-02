@@ -1,4 +1,4 @@
-import { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -61,4 +61,36 @@ const handleGetUserOrgs = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs };
+const addStaffSchema = {
+  userId: { type: "string", required: true },
+};
+
+const handleAddStaff = async (req, res) => {
+  try {
+    const validated = validateSchema(addStaffSchema, req.body);
+    if (validated.errors) {
+      return httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: validated.errors,
+      });
+    }
+
+    const result = await addStaffToOrg(req.params.id, validated.userId, req.user.id);
+
+    if (result.error === "org_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    if (result.error === "user_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    if (result.error === "already_member") {
+      return httpResponseError(res, { statusCode: 409, status: "conflict", data: null });
+    }
+
+    return httpResponse(res, generalStatus.CREATED, result.staff);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs, handleAddStaff };
