@@ -55,4 +55,19 @@ const countByPositionId = async (positionId) => {
   });
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId };
+// Возвращает userId всех членов организации (активных, приглашённых и приостановленных)
+const getMemberUserIdsByOrg = async (orgId) => {
+  const docs = await Membership.find({
+    orgId,
+    status: { $in: [MEMBERSHIP_STATUS.ACTIVE, MEMBERSHIP_STATUS.INVITED, MEMBERSHIP_STATUS.SUSPENDED] },
+  }).select("userId");
+  const toUserId = (doc) => doc.userId;
+  return docs.map(toUserId);
+};
+
+// Находит членство по userId и orgId (для проверки дубликатов при добавлении)
+const getMembershipByUserAndOrg = async (userId, orgId) => {
+  return Membership.findOne({ userId, orgId });
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg };
