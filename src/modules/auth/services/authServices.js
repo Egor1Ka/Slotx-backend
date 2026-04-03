@@ -9,6 +9,7 @@ import {
 } from "../repository/refreshTokenRepository.js";
 import { parseDurationMs } from "../../../shared/utils/duration.js";
 import { REFRESH_BYTES, STATE_BYTES } from "../constants/auth.js";
+import { createDefaultSchedule } from "../../../services/scheduleServices.js";
 
 const { JWT_SECRET, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
 
@@ -52,7 +53,13 @@ const findOrCreateUser = async (profile) => {
     return existing;
   }
 
-  return createUserRecord(buildNormalizedUser(profile));
+  const newUser = await createUserRecord(buildNormalizedUser(profile));
+
+  await createDefaultSchedule(newUser.id).catch((err) =>
+    console.error("[createDefaultSchedule] registration failed:", err.message),
+  );
+
+  return newUser;
 };
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
