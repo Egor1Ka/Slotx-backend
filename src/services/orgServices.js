@@ -1,12 +1,13 @@
 import crypto from "node:crypto";
 import { getOrgById, getRawOrgById, createOrg } from "../repository/organizationRepository.js";
-import { getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg, acceptInvitation as acceptInvitationRepo, declineInvitation as declineInvitationRepo } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
 import { toOrgStaffDto } from "../dto/staffDto.js";
 import { toOrgListItemDto } from "../dto/orgDto.js";
 import { MEMBERSHIP_STATUS } from "../constants/booking.js";
+import { createDefaultSchedule } from "./scheduleServices.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
@@ -75,6 +76,10 @@ const createOrganization = async (data, userId) => {
     status: MEMBERSHIP_STATUS.ACTIVE,
   });
 
+  await createDefaultSchedule(userId, org.id).catch((err) =>
+    console.error("[createDefaultSchedule] org creation failed:", err.message),
+  );
+
   return org;
 };
 
@@ -110,4 +115,21 @@ const addStaffToOrg = async (orgId, userId, invitedByUserId) => {
   return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bookingCount: 0, status: "invited" } };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg };
+const acceptInvitation = async (orgId, userId) => {
+  const result = await acceptInvitationRepo(userId, orgId);
+  if (!result) return { error: "invitation_not_found" };
+
+  await createDefaultSchedule(userId, orgId).catch((err) =>
+    console.error("[createDefaultSchedule] accept invitation failed:", err.message),
+  );
+
+  return { success: true };
+};
+
+const declineInvitation = async (orgId, userId) => {
+  const result = await declineInvitationRepo(userId, orgId);
+  if (!result) return { error: "invitation_not_found" };
+  return { success: true };
+};
+
+export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation };
