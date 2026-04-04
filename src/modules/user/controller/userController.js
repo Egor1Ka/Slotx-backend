@@ -33,6 +33,10 @@ const updateUserSchema = {
     validatorErrorMessage: "must be a valid email",
   },
   avatar: { type: "string", required: false },
+  description: { type: "string", required: false },
+  address: { type: "string", required: false },
+  phone: { type: "string", required: false },
+  website: { type: "string", required: false },
 };
 
 const createUser = async (req, res) => {

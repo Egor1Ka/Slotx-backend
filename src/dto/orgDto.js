@@ -1,8 +1,11 @@
 const toOrgDto = (doc) => ({
   id: doc._id.toString(),
   name: doc.name,
-  slug: doc.slug,
-  logo: doc.settings ? doc.settings.logoUrl : null,
+  logo: doc.settings ? doc.settings.logoUrl || null : null,
+  description: doc.description || null,
+  address: doc.address || null,
+  phone: doc.phone || null,
+  website: doc.website || null,
 });
 
 const toOrgListItemDto = (org, membership) => ({

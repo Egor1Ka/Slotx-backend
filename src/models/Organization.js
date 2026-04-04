@@ -5,13 +5,6 @@ const { Schema, model } = mongoose;
 const OrganizationSchema = new Schema(
   {
     /**
-     * URL-ключ компании. Уникальный глобально.
-     * Генерируется из name при создании, больше не меняется —
-     * иначе ломаются все ссылки клиентов.
-     */
-    slug: { type: String, required: true, unique: true },
-
-    /**
      * Отображаемое название организации.
      */
     name: { type: String, required: true },
@@ -20,6 +13,26 @@ const OrganizationSchema = new Schema(
      * Валюта организации.
      */
     currency: { type: String, enum: ["UAH", "USD"], default: "UAH" },
+
+    /**
+     * Описание организации (публичное).
+     */
+    description: { type: String, default: null },
+
+    /**
+     * Адрес организации.
+     */
+    address: { type: String, default: null },
+
+    /**
+     * Контактный телефон.
+     */
+    phone: { type: String, default: null },
+
+    /**
+     * Вебсайт организации.
+     */
+    website: { type: String, default: null },
 
     settings: {
       /**

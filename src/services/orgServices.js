@@ -1,13 +1,16 @@
-import crypto from "node:crypto";
 import { getOrgById, getRawOrgById, createOrg } from "../repository/organizationRepository.js";
 import { getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getMembershipByUserAndOrg, acceptInvitation as acceptInvitationRepo, declineInvitation as declineInvitationRepo } from "../repository/membershipRepository.js";
 import { getUserById } from "../modules/user/index.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { countConfirmedBookings } from "../repository/bookingRepository.js";
 import { toOrgStaffDto } from "../dto/staffDto.js";
-import { toOrgListItemDto } from "../dto/orgDto.js";
+import { toOrgDto, toOrgListItemDto } from "../dto/orgDto.js";
 import { MEMBERSHIP_STATUS } from "../constants/booking.js";
 import { createDefaultSchedule } from "./scheduleServices.js";
+import Organization from "../models/Organization.js";
+import Membership from "../models/Membership.js";
+import { HttpError } from "../shared/utils/http/httpError.js";
+import { generalStatus } from "../shared/utils/http/httpStatus.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
@@ -36,7 +39,7 @@ const buildMemberProfile = async (member, dateRange) => {
     dateRange.end,
   );
 
-  return toOrgStaffDto(user, position, bookingCount, member.status);
+  return toOrgStaffDto(user, position, bookingCount, member.status, member);
 };
 
 const isNotNull = (item) => item !== null;
@@ -56,7 +59,6 @@ const getOrgStaff = async (id, dateStr) => {
 
 const createOrganization = async (data, userId) => {
   const orgData = {
-    slug: `org-${crypto.randomUUID()}`,
     name: data.name,
     currency: data.currency || "UAH",
     settings: {
@@ -81,6 +83,43 @@ const createOrganization = async (data, userId) => {
   );
 
   return org;
+};
+
+const updateOrganization = async (orgId, data) => {
+  const update = {};
+
+  if (data.name !== undefined) update.name = data.name;
+  if (data.description !== undefined) update.description = data.description;
+  if (data.address !== undefined) update.address = data.address;
+  if (data.phone !== undefined) update.phone = data.phone;
+  if (data.website !== undefined) update.website = data.website;
+  if (data.logoUrl !== undefined) update["settings.logoUrl"] = data.logoUrl;
+  if (data.brandColor !== undefined) update["settings.brandColor"] = data.brandColor;
+
+  if (Object.keys(update).length === 0) {
+    throw new HttpError(generalStatus.BAD_REQUEST);
+  }
+
+  const org = await Organization.findByIdAndUpdate(orgId, update, { new: true });
+  if (!org) {
+    throw new HttpError(generalStatus.NOT_FOUND);
+  }
+
+  return toOrgDto(org);
+};
+
+const updateStaffBio = async (orgId, staffId, bio) => {
+  const membership = await Membership.findOneAndUpdate(
+    { userId: staffId, orgId, status: "active" },
+    { bio: bio !== undefined ? bio : null },
+    { new: true },
+  );
+
+  if (!membership) {
+    throw new HttpError(generalStatus.NOT_FOUND);
+  }
+
+  return { bio: membership.bio || null };
 };
 
 const getUserOrganizations = async (userId) => {
@@ -112,7 +151,7 @@ const addStaffToOrg = async (orgId, userId, invitedByUserId) => {
     invitedBy: invitedByUserId,
   });
 
-  return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bookingCount: 0, status: "invited" } };
+  return { staff: { id: user.id, name: user.name, avatar: user.avatar, position: null, bio: null, bookingCount: 0, status: "invited" } };
 };
 
 const acceptInvitation = async (orgId, userId) => {
@@ -132,4 +171,4 @@ const declineInvitation = async (orgId, userId) => {
   return { success: true };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation };

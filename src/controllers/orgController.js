@@ -1,7 +1,8 @@
-import { getOrganizationById, getOrgStaff, createOrganization, getUserOrganizations, addStaffToOrg } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
+import { isValidObjectId } from "../shared/utils/validation/validators.js";
 
 const createOrgSchema = {
   name: { type: "string", required: true },
@@ -10,6 +11,20 @@ const createOrgSchema = {
   brandColor: { type: "string", required: false },
   defaultTimezone: { type: "string", required: false },
   defaultCountry: { type: "string", required: false },
+};
+
+const updateOrgSchema = {
+  name: { type: "string", required: false },
+  description: { type: "string", required: false },
+  address: { type: "string", required: false },
+  phone: { type: "string", required: false },
+  website: { type: "string", required: false },
+  logoUrl: { type: "string", required: false },
+  brandColor: { type: "string", required: false },
+};
+
+const updateStaffBioSchema = {
+  bio: { type: "string", required: false },
 };
 
 const handleGetOrg = async (req, res) => {
@@ -47,6 +62,46 @@ const handleCreateOrg = async (req, res) => {
     }
     const org = await createOrganization(validated, req.user.id);
     return httpResponse(res, generalStatus.CREATED, org);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleUpdateOrg = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const validated = validateSchema(updateOrgSchema, req.body);
+    if (validated.errors) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    const result = await updateOrganization(req.params.id, validated);
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleUpdateStaffBio = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id) || !isValidObjectId(req.params.staffId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    if (req.user.id !== req.params.staffId) {
+      return httpResponse(res, generalStatus.UNAUTHORIZED);
+    }
+
+    const validated = validateSchema(updateStaffBioSchema, req.body);
+    if (validated.errors) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    const result = await updateStaffBio(req.params.id, req.params.staffId, validated.bio);
+    return httpResponse(res, generalStatus.SUCCESS, result);
   } catch (error) {
     return httpResponseError(res, error);
   }
@@ -93,4 +148,28 @@ const handleAddStaff = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs, handleAddStaff };
+const handleAcceptInvitation = async (req, res) => {
+  try {
+    const result = await acceptInvitation(req.params.id, req.user.id);
+    if (result.error === "invitation_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeclineInvitation = async (req, res) => {
+  try {
+    const result = await declineInvitation(req.params.id, req.user.id);
+    if (result.error === "invitation_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation };

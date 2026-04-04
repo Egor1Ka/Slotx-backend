@@ -18,7 +18,6 @@ const DB_URI = "mongodb://localhost:27017/myDatabase";
 // ---------------------------------------------------------------------------
 
 const buildOrganizationData = () => ({
-  slug: "champion-barber",
   name: "Барбершоп Чемпіон",
   settings: {
     defaultTimezone: "Europe/Kyiv",
@@ -553,8 +552,8 @@ const logSummary = (org, users, trainer) => {
 === Seed Complete ===
 
 Organization: "${org.name}"
-  Org page: /org/${org.slug}
-  Admin page: /staff/org/${org.slug}
+  Org page: /org/${org._id}
+  Admin page: /staff/org/${org._id}
 
 Staff:
   Іван Петров (Senior Barber): /book/${ivan._id}

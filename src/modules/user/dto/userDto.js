@@ -3,6 +3,10 @@ const toUserDto = (doc) => ({
   name: doc.name,
   email: doc.email,
   avatar: doc.avatar,
+  description: doc.description || null,
+  address: doc.address || null,
+  phone: doc.phone || null,
+  website: doc.website || null,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });

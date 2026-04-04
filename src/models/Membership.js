@@ -74,6 +74,11 @@ const MembershipSchema = new Schema(
      * Кто пригласил. Nullable.
      */
     invitedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+
+    /**
+     * Краткое описание сотрудника в этой организации.
+     */
+    bio: { type: String, default: null },
   },
   { timestamps: true },
 );

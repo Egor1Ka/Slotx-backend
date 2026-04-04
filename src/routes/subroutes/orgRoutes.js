@@ -1,13 +1,18 @@
 import express from "express";
-import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleGetUserOrgs, handleAddStaff } from "../../controllers/orgController.js";
+import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation } from "../../controllers/orgController.js";
 import { authMiddleware } from "../../modules/auth/index.js";
+import { requireOrgAdmin } from "../../middleware/orgMiddleware.js";
 
 const router = express.Router();
 
 router.get("/user-orgs", authMiddleware, handleGetUserOrgs);
 router.post("/", authMiddleware, handleCreateOrg);
 router.get("/:id", handleGetOrg);
+router.put("/:id", authMiddleware, requireOrgAdmin((req) => req.params.id), handleUpdateOrg);
 router.get("/:id/staff", handleGetOrgStaff);
 router.post("/:id/staff", authMiddleware, handleAddStaff);
+router.patch("/:id/staff/:staffId", authMiddleware, handleUpdateStaffBio);
+router.patch("/:id/membership/accept", authMiddleware, handleAcceptInvitation);
+router.delete("/:id/membership/decline", authMiddleware, handleDeclineInvitation);
 
 export default router;
