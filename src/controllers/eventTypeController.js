@@ -2,6 +2,7 @@ import { getEventTypesForStaff, getEventTypesByOrg } from "../services/eventType
 import { getStaffForEventType } from "../services/eventTypeStaffServices.js";
 import {
   createEventType,
+  createPersonalEventType,
   updateEventType,
   deleteEventType,
 } from "../services/eventTypeService.js";
@@ -98,13 +99,19 @@ const handleCreateEventType = async (req, res) => {
       });
     }
 
-    const orgId = req.body.orgId;
-    if (!orgId || !isValidObjectId(orgId)) {
-      return httpResponse(res, generalStatus.BAD_REQUEST);
+    const { orgId, userId } = req.body;
+
+    if (orgId && isValidObjectId(orgId)) {
+      const eventType = await createEventType(orgId, validated);
+      return httpResponse(res, generalStatus.CREATED, eventType);
     }
 
-    const eventType = await createEventType(orgId, validated);
-    return httpResponse(res, generalStatus.CREATED, eventType);
+    if (userId && isValidObjectId(userId)) {
+      const eventType = await createPersonalEventType(userId, validated);
+      return httpResponse(res, generalStatus.CREATED, eventType);
+    }
+
+    return httpResponse(res, generalStatus.BAD_REQUEST);
   } catch (error) {
     return httpResponseError(res, error);
   }
