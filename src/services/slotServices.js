@@ -66,17 +66,24 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const durationMin = eventType.durationMin;
   const minNotice = eventType.minNotice || 0;
 
-  const template = await findActiveTemplate(staffId, null, locationId || null, new Date(date));
+  const template = await findActiveTemplate(staffId, undefined, locationId || null, new Date(date));
   if (!template) return { error: "template_not_found" };
 
   const override = await findOverrideByDate(staffId, template.orgId, template.locationId, new Date(date));
 
-  if (override && !override.enabled) return { slots: [] };
+  // Полный выходной: enabled=false и нет слотов (или слоты пустые)
+  const isFullDayOff = override && !override.enabled && (!override.slots || override.slots.length === 0);
+  if (isFullDayOff) return { slots: [] };
 
   const requestDate = new Date(date);
   const dayOfWeek = WEEKDAY_INDEX[requestDate.getDay()];
 
-  const workWindow = resolveWorkWindow(override, template, dayOfWeek);
+  // Частичный выходной: enabled=false со слотами = перерыв (недоступен в указанные часы)
+  const isPartialDayOff = override && !override.enabled && override.slots && override.slots.length > 0;
+
+  const workWindow = isPartialDayOff
+    ? resolveWorkWindow(null, template, dayOfWeek)
+    : resolveWorkWindow(override, template, dayOfWeek);
   if (!workWindow) return { slots: [] };
   const { workStart, workEnd } = workWindow;
 
@@ -87,6 +94,16 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
 
   const toBooking = (b) => toBookingSlot(template, bufferAfter, b);
   const bookingSlots = bookings.map(toBooking);
+
+  // Добавляем перерыв как фейковый букинг чтобы slot engine его заблокировал
+  if (isPartialDayOff) {
+    const toBreakBooking = (slot) => ({
+      startMin: parseHHMM(slot.start),
+      duration: parseHHMM(slot.end) - parseHHMM(slot.start),
+    });
+    const breakSlots = override.slots.map(toBreakBooking);
+    bookingSlots.push(...breakSlots);
+  }
 
   const slotStep = template.slotStepMin || eventType.slotStepMin || durationMin;
 

@@ -7,18 +7,19 @@ const getEventTypeById = async (id) => {
   return doc;
 };
 
-const getEventTypesForStaff = async (staffId, orgId) => {
+const getEventTypesForStaff = async (staffId, orgId, positionId) => {
+  const orgConditions = [];
+  if (orgId) {
+    orgConditions.push({ orgId, staffPolicy: "any" });
+    orgConditions.push({ orgId, staffPolicy: "specific", assignedStaff: staffId });
+    if (positionId) {
+      orgConditions.push({ orgId, staffPolicy: "by_position", assignedPositions: positionId });
+    }
+  }
+
   const query = {
     active: true,
-    $or: [
-      { userId: staffId },
-      ...(orgId
-        ? [
-            { orgId, staffPolicy: "any" },
-            { assignedStaff: staffId },
-          ]
-        : []),
-    ],
+    $or: [{ userId: staffId }, ...orgConditions],
   };
   const docs = await EventType.find(query);
   return docs.map(toEventTypeDto);

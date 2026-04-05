@@ -1,4 +1,4 @@
-import { getActiveTemplate, rotateTemplate, upsertScheduleOverride, getActiveTemplatesByOrg } from "../services/scheduleServices.js";
+import { getActiveTemplate, rotateTemplate, upsertScheduleOverride, getOverridesByStaff, deleteOverride, getOverridesByOrg, getActiveTemplatesByOrg } from "../services/scheduleServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -88,4 +88,48 @@ const handleGetTemplatesByOrg = async (req, res) => {
   }
 }
 
-export { handleGetTemplate, handlePutTemplate, handlePostOverride, handleGetTemplatesByOrg };
+const handleGetOverrides = async (req, res) => {
+  try {
+    const { staffId, orgId } = req.query;
+    if (!staffId || !isValidObjectId(staffId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const overrides = await getOverridesByStaff(staffId, orgId);
+    return httpResponse(res, generalStatus.SUCCESS, overrides);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeleteOverride = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const deleted = await deleteOverride(id);
+    if (!deleted) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    return httpResponse(res, generalStatus.SUCCESS, null);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleGetOverridesByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!isValidObjectId(orgId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const overrides = await getOverridesByOrg(orgId);
+    return httpResponse(res, generalStatus.SUCCESS, overrides);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetTemplate, handlePutTemplate, handlePostOverride, handleGetOverrides, handleDeleteOverride, handleGetOverridesByOrg, handleGetTemplatesByOrg };

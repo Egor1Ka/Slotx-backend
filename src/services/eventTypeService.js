@@ -38,6 +38,22 @@ const createEventType = async (orgId, data) => {
   return repoCreate(eventTypeData);
 };
 
+const createPersonalEventType = async (userId, data) => {
+  const slug = generateSlug(data.name);
+
+  const { currency, ...restData } = data;
+
+  const eventTypeData = {
+    ...restData,
+    userId,
+    slug,
+    type: "solo",
+    price: { amount: data.price, currency: currency || "UAH" },
+  };
+
+  return repoCreate(eventTypeData);
+};
+
 const buildPriceUpdate = (data, updateData) => {
   if (data.price === undefined && data.currency === undefined) return updateData;
 
@@ -93,4 +109,4 @@ const deleteEventType = async (id) => {
   return deleted;
 };
 
-export { createEventType, updateEventType, deleteEventType };
+export { createEventType, createPersonalEventType, updateEventType, deleteEventType };

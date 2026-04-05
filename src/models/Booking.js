@@ -141,6 +141,22 @@ const BookingSchema = new Schema(
      */
     clientNotes: { type: String, default: null },
 
+    /**
+     * Значения кастомных полей формы бронирования.
+     * Каждый элемент: { fieldId, label, value }.
+     */
+    customFieldValues: {
+      type: [
+        {
+          fieldId: { type: String, required: true },
+          label: { type: String, required: true },
+          value: { type: String, required: true },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
+
     payment: {
       /**
        * Статус оплаты: none | pending | paid | refunded | failed.

@@ -12,7 +12,8 @@ const getEventTypeById = async (id) => {
 const getEventTypesForStaff = async (staffId) => {
   const membership = await getActiveMembership(staffId);
   const orgId = membership ? membership.orgId : null;
-  return repoGetForStaff(staffId, orgId);
+  const positionId = membership ? membership.positionId : null;
+  return repoGetForStaff(staffId, orgId, positionId);
 };
 
 const getEventTypesByOrg = async (orgId) => {

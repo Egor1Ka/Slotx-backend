@@ -78,4 +78,20 @@ const getMembershipByUserAndOrg = async (userId, orgId) => {
   return Membership.findOne({ userId, orgId });
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg };
+// Принять приглашение: меняет статус с invited на active
+const acceptInvitation = async (userId, orgId) => {
+  return Membership.findOneAndUpdate(
+    { userId, orgId, status: MEMBERSHIP_STATUS.INVITED },
+    { status: MEMBERSHIP_STATUS.ACTIVE },
+    { new: true }
+  );
+};
+
+// Отклонить приглашение: удаляет membership
+const declineInvitation = async (userId, orgId) => {
+  return Membership.findOneAndDelete(
+    { userId, orgId, status: MEMBERSHIP_STATUS.INVITED }
+  );
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg, acceptInvitation, declineInvitation };

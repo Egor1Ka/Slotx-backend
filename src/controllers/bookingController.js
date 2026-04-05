@@ -27,6 +27,18 @@ const createBookingSchema = {
       phone: { type: "string", required: false },
     },
   },
+  customFieldValues: {
+    type: "array",
+    required: false,
+    items: {
+      type: "object",
+      properties: {
+        fieldId: { type: "string", required: true },
+        label: { type: "string", required: true },
+        value: { type: "string", required: true },
+      },
+    },
+  },
 };
 
 const handleCreateBooking = async (req, res) => {
@@ -40,10 +52,6 @@ const handleCreateBooking = async (req, res) => {
     if (result.error === "eventType_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
-    if (result.error === "invitee_contact_required") {
-      return httpResponse(res, generalStatus.BAD_REQUEST);
-    }
-
     const dto = toBookingCreatedDto(result.raw, result.eventType);
     return httpResponse(res, generalStatus.CREATED, dto);
   } catch (error) {

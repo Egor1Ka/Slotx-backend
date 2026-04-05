@@ -26,4 +26,21 @@ const upsertOverride = async (data) => {
   return toScheduleOverrideDto(doc);
 };
 
-export { findOverrideByDate, upsertOverride };
+const findOverridesByStaff = async (staffId, orgId) => {
+  const filter = { staffId };
+  if (orgId) filter.orgId = orgId;
+  const docs = await ScheduleOverride.find(filter).sort({ date: 1 });
+  return docs.map(toScheduleOverrideDto);
+};
+
+const deleteOverrideById = async (id) => {
+  const doc = await ScheduleOverride.findByIdAndDelete(id);
+  return doc;
+};
+
+const findOverridesByOrg = async (orgId) => {
+  const docs = await ScheduleOverride.find({ orgId }).sort({ date: 1 });
+  return docs.map(toScheduleOverrideDto);
+};
+
+export { findOverrideByDate, upsertOverride, findOverridesByStaff, deleteOverrideById, findOverridesByOrg };

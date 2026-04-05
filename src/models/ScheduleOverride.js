@@ -2,9 +2,6 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
-/** Причины исключения из расписания */
-const OVERRIDE_REASONS = ["sick", "vacation", "conference", "personal"];
-
 /**
  * Один рабочий интервал: { start: "09:00", end: "13:00" }.
  */
@@ -63,7 +60,7 @@ const ScheduleOverrideSchema = new Schema(
     /**
      * Причина исключения. Для аналитики.
      */
-    reason: { type: String, enum: OVERRIDE_REASONS },
+    reason: { type: String, default: null },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

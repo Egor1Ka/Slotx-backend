@@ -29,7 +29,7 @@ const generateToken = () => crypto.randomBytes(32).toString("hex");
 const computePaymentStatus = (amount) =>
   amount > 0 ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.NONE;
 
-const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee }) => {
+const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee, customFieldValues }) => {
   const eventType = await getEventTypeById(eventTypeId);
   if (!eventType) return { error: "eventType_not_found" };
 
@@ -39,10 +39,6 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee 
 
   const conflict = await findConflict(staffId, startDate, endDate);
   if (conflict) throw new HttpError(bookingStatus.SLOT_TAKEN);
-
-  if (!invitee.email && !invitee.phone) {
-    return { error: "invitee_contact_required" };
-  }
 
   const inviteeDoc = await findOrCreateInvitee(invitee);
 
@@ -65,6 +61,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee 
       phone: invitee.phone || null,
     },
     clientNotes: invitee.notes || null,
+    customFieldValues: Array.isArray(customFieldValues) ? customFieldValues : [],
     payment: {
       status: computePaymentStatus(amount),
       amount,

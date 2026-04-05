@@ -15,6 +15,12 @@ const toPaymentDto = (payment) => ({
   currency: payment.currency,
 });
 
+const toCustomFieldValueDto = (entry) => ({
+  fieldId: entry.fieldId,
+  label: entry.label,
+  value: entry.value,
+});
+
 const toBookingDto = (doc) => ({
   id: doc._id.toString(),
   eventTypeId: doc.eventTypeId.toString(),
@@ -28,6 +34,9 @@ const toBookingDto = (doc) => ({
   status: doc.status,
   inviteeSnapshot: toInviteeSnapshotDto(doc.inviteeSnapshot),
   clientNotes: doc.clientNotes,
+  customFieldValues: Array.isArray(doc.customFieldValues)
+    ? doc.customFieldValues.map(toCustomFieldValueDto)
+    : [],
   payment: toPaymentDto(doc.payment),
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
