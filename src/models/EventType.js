@@ -57,6 +57,11 @@ const EventTypeSchema = new Schema(
     name: { type: String, required: true },
 
     /**
+     * Описание услуги (показывается клиенту).
+     */
+    description: { type: String, default: null },
+
+    /**
      * Длина сессии в минутах. Min 5, max 480.
      * КЛЮЧЕВОЕ ПОЛЕ: движок слотов нарезает временную сетку
      * именно по этому значению.
