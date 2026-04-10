@@ -5,19 +5,15 @@ import {
   createTestUser,
   createActiveSubscription,
   buildCheckoutPayload,
-  buildOneTimeCheckoutPayload,
   buildSubscriptionEventPayload,
   buildRenewalPayload,
   sendWebhook,
-  TEST_PRODUCT_PRO,
-  TEST_PRODUCT_EXPORT_PACK,
+  TEST_PRODUCT_ORG_CREATOR,
   TEST_SUBSCRIPTION_ID,
-  TEST_ONE_TIME_ORDER_ID,
   TEST_EMAIL,
 } from "./helpers.js";
 import Subscription from "../model/Subscription.js";
 import Payment from "../model/Payment.js";
-import Order from "../model/Order.js";
 
 describe("Billing webhooks", () => {
   before(async () => {
@@ -45,8 +41,8 @@ describe("Billing webhooks", () => {
       const sub = await Subscription.findOne({ providerSubscriptionId: TEST_SUBSCRIPTION_ID });
       assert.ok(sub, "Subscription should exist in DB");
       assert.equal(sub.status, "active");
-      assert.equal(sub.planKey, "pro");
-      assert.equal(sub.productId, TEST_PRODUCT_PRO);
+      assert.equal(sub.planKey, "org_creator");
+      assert.equal(sub.productId, TEST_PRODUCT_ORG_CREATOR);
     });
 
     it("1.2 creates payment record", async () => {
@@ -58,28 +54,20 @@ describe("Billing webhooks", () => {
       const payment = await Payment.findOne({ eventType: "checkout.completed" });
       assert.ok(payment, "Payment should exist in DB");
       assert.equal(payment.type, "subscription");
-      assert.equal(payment.amount, 2900);
+      assert.equal(payment.amount, 200);
       assert.equal(payment.currency, "USD");
     });
 
-    it("1.3 rejects webhook when user not found", async () => {
+    it("1.3 skips subscription when user not found", async () => {
       const payload = buildCheckoutPayload({
         customer: { id: "cus_unknown", email: "unknown@example.com" },
       });
 
       const res = await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-      assert.equal(res.statusCode, 500);
+      assert.equal(res.statusCode, 200);
 
-      // Subscription is upserted before DTO conversion fails (findOneAndUpdate skips validation),
-      // so 1 document exists in DB with userId: null
       const subCount = await Subscription.countDocuments();
-      assert.equal(subCount, 1, "Subscription is created before DTO error");
-
-      const sub = await Subscription.findOne({ providerSubscriptionId: TEST_SUBSCRIPTION_ID });
-      assert.equal(sub.userId, null, "userId should be null when user not found");
-
-      const paymentCount = await Payment.countDocuments();
-      assert.equal(paymentCount, 1, "Payment is created before subscription fails");
+      assert.equal(subCount, 0, "No subscription should be created when user not found");
     });
 
     it("1.4 duplicate checkout does not create duplicates", async () => {
@@ -142,7 +130,7 @@ describe("Billing webhooks", () => {
 
       const payment = await Payment.findOne({ eventType: "subscription.paid" });
       assert.ok(payment, "Renewal payment should exist in DB");
-      assert.equal(payment.amount, 2900);
+      assert.equal(payment.amount, 200);
       assert.equal(payment.currency, "USD");
     });
   });
@@ -170,7 +158,6 @@ describe("Billing webhooks", () => {
       const user = await createTestUser(TEST_EMAIL);
       await createActiveSubscription(user._id);
 
-      // Step 1: scheduled_cancel — still access-granting
       const scheduledPayload = buildSubscriptionEventPayload({
         canceled_at: "2026-04-01T00:00:00Z",
         status: "scheduled_cancel",
@@ -182,7 +169,6 @@ describe("Billing webhooks", () => {
       });
       assert.equal(subAfterScheduled.status, "scheduled_cancel");
 
-      // Step 2: canceled — no longer access-granting
       const canceledPayload = buildSubscriptionEventPayload({
         canceled_at: "2026-04-01T00:00:00Z",
         status: "canceled",
@@ -205,69 +191,11 @@ describe("Billing webhooks", () => {
       });
       await sendWebhook(getBaseUrl(), "subscription.canceled", payload);
 
-      // Use the real repository function to check
       const { getActiveSubscriptionByUserId } = await import(
         "../repository/subscriptionRepository.js"
       );
       const activeSub = await getActiveSubscriptionByUserId(user._id);
       assert.equal(activeSub, null, "Canceled subscription should not be returned as active");
-    });
-  });
-
-  // ── Group 4: One-time purchase (checkout.completed) ───────────────────────
-
-  describe("one-time checkout.completed", () => {
-    it("4.1 creates order with correct productKey", async () => {
-      await createTestUser(TEST_EMAIL);
-      const payload = buildOneTimeCheckoutPayload();
-
-      const res = await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-      assert.equal(res.statusCode, 200);
-
-      const order = await Order.findOne({ providerOrderId: TEST_ONE_TIME_ORDER_ID });
-      assert.ok(order, "Order should exist in DB");
-      assert.equal(order.productKey, "export_pack");
-      assert.equal(order.providerProductId, TEST_PRODUCT_EXPORT_PACK);
-      assert.equal(order.amount, 900);
-      assert.equal(order.currency, "USD");
-    });
-
-    it("4.2 creates payment with type one_time", async () => {
-      await createTestUser(TEST_EMAIL);
-      const payload = buildOneTimeCheckoutPayload();
-
-      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-
-      const payment = await Payment.findOne({ providerEventId: TEST_ONE_TIME_ORDER_ID });
-      assert.ok(payment, "Payment should exist in DB");
-      assert.equal(payment.type, "one_time");
-      assert.equal(payment.eventType, "checkout.completed");
-      assert.equal(payment.amount, 900);
-      assert.equal(payment.currency, "USD");
-    });
-
-    it("4.3 duplicate one-time checkout does not create duplicates", async () => {
-      await createTestUser(TEST_EMAIL);
-      const payload = buildOneTimeCheckoutPayload();
-
-      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-
-      const orderCount = await Order.countDocuments();
-      assert.equal(orderCount, 1, "Should have exactly 1 order");
-
-      const paymentCount = await Payment.countDocuments();
-      assert.equal(paymentCount, 1, "Should have exactly 1 payment");
-    });
-
-    it("4.4 does not create subscription for one-time product", async () => {
-      await createTestUser(TEST_EMAIL);
-      const payload = buildOneTimeCheckoutPayload();
-
-      await sendWebhook(getBaseUrl(), "checkout.completed", payload);
-
-      const subCount = await Subscription.countDocuments();
-      assert.equal(subCount, 0, "No subscription should be created for one-time purchase");
     });
   });
 });

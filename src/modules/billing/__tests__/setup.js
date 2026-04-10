@@ -15,8 +15,7 @@ if (!uri) throw new Error("TEST_MONGODB_URI is required in .env.test");
 
 // ── Environment variables ────────────────────────────────────────────────────
 // Must be set before billing constants are imported (they read process.env at load time)
-process.env.CREEM_PRODUCT_PRO = "test_product_pro";
-process.env.CREEM_PRODUCT_EXPORT_PACK = "test_product_export_pack";
+process.env.CREEM_PRODUCT_ORG_CREATOR = "test_product_org_creator";
 
 // ── Mock the Creem provider ──────────────────────────────────────────────────
 // Must be registered before billingController imports providers/creem.js.
