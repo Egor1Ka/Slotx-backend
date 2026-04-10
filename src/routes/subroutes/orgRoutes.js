@@ -2,11 +2,12 @@ import express from "express";
 import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership } from "../../controllers/orgController.js";
 import { authMiddleware } from "../../modules/auth/index.js";
 import { requireOrgAdmin } from "../../middleware/orgMiddleware.js";
+import { requireFeature } from "../../modules/billing/middleware/plan.js";
 
 const router = express.Router();
 
 router.get("/user-orgs", authMiddleware, handleGetUserOrgs);
-router.post("/", authMiddleware, handleCreateOrg);
+router.post("/", authMiddleware, requireFeature("createOrg"), handleCreateOrg);
 router.get("/:id", handleGetOrg);
 router.get("/:id/my-membership", authMiddleware, handleGetMyMembership);
 router.put("/:id", authMiddleware, requireOrgAdmin((req) => req.params.id), handleUpdateOrg);

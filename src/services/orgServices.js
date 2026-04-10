@@ -11,6 +11,7 @@ import Organization from "../models/Organization.js";
 import Membership from "../models/Membership.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
+import { getUserBillingProfile } from "../modules/billing/services/planServices.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
@@ -58,6 +59,18 @@ const getOrgStaff = async (id, dateStr) => {
 };
 
 const createOrganization = async (data, userId) => {
+  const plan = await getUserBillingProfile(userId);
+  const orgLimit = plan.limits.organizations || 0;
+
+  const ownedOrgsCount = await Membership.countDocuments({
+    userId,
+    role: "owner",
+  });
+
+  if (ownedOrgsCount >= orgLimit) {
+    throw new HttpError({ statusCode: 402, status: "limitReached" });
+  }
+
   const orgData = {
     name: data.name,
     currency: data.currency || "UAH",
