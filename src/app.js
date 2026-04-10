@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./db.js";
 import routes from "./routes/routes.js";
+import { initBot } from "./providers/telegramProvider.js";
 
 const { PORT, FRONTEND_URL } = process.env;
 
@@ -21,5 +22,7 @@ connectDB();
 app.use(apiPrefix || "/", routes);
 
 app.set("trust proxy", true);
+
+initBot();
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

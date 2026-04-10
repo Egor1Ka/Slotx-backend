@@ -12,6 +12,10 @@ import {
   updateUser as serviceUpdateUser,
   deleteUser as serviceDeleteUser,
 } from "../services/userServices.js";
+import {
+  generateTelegramLink,
+  disconnectTelegram,
+} from "../../../services/telegramLinkService.js";
 
 const createUserSchema = {
   name: { type: "string", required: true },
@@ -149,4 +153,24 @@ const getProfile = async (req, res) => {
   }
 };
 
-export { createUser, getUser, updateUser, deleteUser, getProfile };
+const connectTelegram = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const result = generateTelegramLink(id);
+    httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+const disconnectTelegramHandler = async (req, res) => {
+  try {
+    const { id } = req.user;
+    await disconnectTelegram(id);
+    httpResponse(res, generalStatus.SUCCESS);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+export { createUser, getUser, updateUser, deleteUser, getProfile, connectTelegram, disconnectTelegramHandler };

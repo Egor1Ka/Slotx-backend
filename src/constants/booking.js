@@ -35,6 +35,9 @@ const NOTIFICATION_TYPE = {
   BOOKING_CONFIRMED: "booking_confirmed",
   BOOKING_CANCELLED: "booking_cancelled",
   BOOKING_RESCHEDULED: "booking_rescheduled",
+  BOOKING_COMPLETED: "booking_completed",
+  BOOKING_NO_SHOW: "booking_no_show",
+  BOOKING_STATUS_CHANGED: "booking_status_changed",
   REMINDER_24H: "reminder_24h",
   REMINDER_1H: "reminder_1h",
   FOLLOW_UP: "follow_up",
@@ -45,6 +48,12 @@ const NOTIFICATION_STATUS = {
   SENT: "sent",
   FAILED: "failed",
   SKIPPED: "skipped",
+};
+
+const NOTIFICATION_CHANNEL = {
+  EMAIL: "email",
+  SMS: "sms",
+  TELEGRAM: "telegram",
 };
 
 const MEMBERSHIP_STATUS = {
@@ -70,6 +79,7 @@ export {
   ACTIVE_BOOKING_STATUSES,
   NOTIFICATION_TYPE,
   NOTIFICATION_STATUS,
+  NOTIFICATION_CHANNEL,
   MEMBERSHIP_STATUS,
   HOST_ROLE,
 };

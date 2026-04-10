@@ -34,11 +34,13 @@ const getStaffProfile = async (id) => {
   const staffDto = toStaffDto(user, position, membership);
 
   const org = membership ? await getRawOrgById(membership.orgId) : null;
-  const contactInfo = org
-    ? buildOrgContactInfo(org)
-    : buildUserContactInfo(user);
+  const orgInfo = {
+    orgName: org ? org.name : null,
+    orgLogo: org && org.settings ? org.settings.logoUrl || null : null,
+  };
+  const contactInfo = buildUserContactInfo(user);
 
-  return { ...staffDto, ...contactInfo };
+  return { ...staffDto, ...contactInfo, ...orgInfo };
 };
 
 export { getStaffProfile };

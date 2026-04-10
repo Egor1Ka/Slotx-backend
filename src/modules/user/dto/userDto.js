@@ -7,6 +7,7 @@ const toUserDto = (doc) => ({
   address: doc.address || null,
   phone: doc.phone || null,
   website: doc.website || null,
+  telegramConnected: !!doc.telegramChatId,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });

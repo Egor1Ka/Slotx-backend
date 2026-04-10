@@ -5,6 +5,8 @@ import {
   updateUser,
   deleteUser,
   getProfile,
+  connectTelegram,
+  disconnectTelegramHandler,
 } from "../controller/userController.js";
 import { authMiddleware } from "../../auth/index.js";
 
@@ -15,5 +17,8 @@ router.get("/profile",    authMiddleware, getProfile);
 router.get("/:id",        authMiddleware, getUser);
 router.put("/:id",        authMiddleware, updateUser);
 router.delete("/:id",     authMiddleware, deleteUser);
+
+router.post("/telegram/connect",     authMiddleware, connectTelegram);
+router.delete("/telegram/disconnect", authMiddleware, disconnectTelegramHandler);
 
 export default router;

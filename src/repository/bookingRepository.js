@@ -42,7 +42,7 @@ const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, stat
 };
 
 const findBookingById = async (id) => {
-  const doc = await Booking.findById(id);
+  const doc = await Booking.findById(id).populate("eventTypeId", "name durationMin");
   return doc;
 };
 

@@ -21,9 +21,12 @@ const toCustomFieldValueDto = (entry) => ({
   value: entry.value,
 });
 
+const extractId = (field) =>
+  field && field._id ? field._id.toString() : field.toString();
+
 const toBookingDto = (doc) => ({
   id: doc._id.toString(),
-  eventTypeId: doc.eventTypeId.toString(),
+  eventTypeId: extractId(doc.eventTypeId),
   hosts: doc.hosts.map(toHostDto),
   inviteeId: doc.inviteeId.toString(),
   orgId: doc.orgId ? doc.orgId.toString() : null,
@@ -44,7 +47,7 @@ const toBookingDto = (doc) => ({
 
 const toBookingCreatedDto = (doc, eventType) => ({
   id: doc._id.toString(),
-  eventTypeId: doc.eventTypeId.toString(),
+  eventTypeId: extractId(doc.eventTypeId),
   eventTypeName: eventType.name,
   staffId: doc.hosts[0].userId.toString(),
   startAt: doc.startAt,

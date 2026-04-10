@@ -14,6 +14,7 @@
     "cors": "^2.8.5",
     "creem": "^1.4.3",
     "express": "^5.1.0",
+    "grammy": "^1.42.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.13.2",
     "ramda": "^0.30.1"

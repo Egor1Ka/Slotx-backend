@@ -6,7 +6,7 @@ const { Schema, model } = mongoose;
 const RECIPIENT_TYPES = ["invitee", "staff"];
 
 /** Канал доставки */
-const CHANNELS = ["email", "sms"];
+const CHANNELS = ["email", "sms", "telegram"];
 
 /** Типы уведомлений */
 const NOTIFICATION_TYPES = [
