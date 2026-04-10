@@ -1,4 +1,4 @@
-import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -172,4 +172,19 @@ const handleDeclineInvitation = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation };
+const handleGetMyMembership = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const membership = await getMyMembership(req.params.id, req.user.id);
+    if (!membership) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    return httpResponse(res, generalStatus.SUCCESS, membership);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };

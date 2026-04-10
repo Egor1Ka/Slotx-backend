@@ -171,4 +171,10 @@ const declineInvitation = async (orgId, userId) => {
   return { success: true };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation };
+const getMyMembership = async (orgId, userId) => {
+  const membership = await getMembershipByUserAndOrg(userId, orgId);
+  if (!membership) return null;
+  return { role: membership.role, status: membership.status };
+};
+
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership };
