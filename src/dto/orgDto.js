@@ -6,6 +6,7 @@ const toOrgDto = (doc) => ({
   address: doc.address || null,
   phone: doc.phone || null,
   website: doc.website || null,
+  active: doc.active !== false,
 });
 
 const toOrgListItemDto = (org, membership) => ({
@@ -14,6 +15,7 @@ const toOrgListItemDto = (org, membership) => ({
   logo: org.settings ? org.settings.logoUrl || null : null,
   role: membership.role,
   status: membership.status,
+  active: org.active !== false,
 });
 
 export { toOrgDto, toOrgListItemDto };

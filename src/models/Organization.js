@@ -34,6 +34,11 @@ const OrganizationSchema = new Schema(
      */
     website: { type: String, default: null },
 
+    /**
+     * Активна ли организация. false — подписка истекла.
+     */
+    active: { type: Boolean, default: true },
+
     settings: {
       /**
        * IANA timezone ("Europe/Kyiv").
