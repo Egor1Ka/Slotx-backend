@@ -3,72 +3,37 @@ const fromEnvEntries = (...entries) =>
   Object.fromEntries(entries.filter(([productId]) => productId !== undefined));
 
 // ── Подписочные продукты → ключ плана ────────────────────────────────────────
-// Ключ — ID продукта из .env (CREEM_PRODUCT_* переменные)
-// Значение — внутренний ключ плана, сохраняется в модели Subscription
-//
-// Чтобы добавить новый подписочный план:
-//   1. Создай recurring-продукт в дашборде платёжки
-//   2. Добавь CREEM_PRODUCT_<KEY> в .env с product ID
-//   3. Добавь CREEM_PRODUCT_<KEY> плейсхолдер в .env.example
-//   4. Добавь запись в fromEnvEntries ниже
-//   5. Добавь конфиг плана в PLANS, PLAN_CATALOG и PLAN_HIERARCHY
 
 export const SUBSCRIPTION_PRODUCTS = fromEnvEntries(
-  [process.env.CREEM_PRODUCT_PRO, "pro"],
+  [process.env.CREEM_PRODUCT_ORG_CREATOR, "org_creator"],
 );
 
 // ── Одноразовые продукты → ключ продукта ─────────────────────────────────────
-// Ключ — ID продукта из .env (CREEM_PRODUCT_* переменные)
-// Значение — внутренний ключ продукта, сохраняется в модели Order
-//
-// Чтобы добавить новый одноразовый продукт:
-//   1. Создай one-time продукт в дашборде платёжки
-//   2. Добавь CREEM_PRODUCT_<KEY> в .env с product ID
-//   3. Добавь CREEM_PRODUCT_<KEY> плейсхолдер в .env.example
-//   4. Добавь запись в fromEnvEntries ниже
-//   5. Добавь конфиг продукта в PRODUCTS и PRODUCT_CATALOG
-//   6. Добавь i18n ключи на фронте (i18n/messages/{en,uk}.json → billing.products)
 
-export const ONE_TIME_PRODUCTS = fromEnvEntries(
-  [process.env.CREEM_PRODUCT_EXPORT_PACK, "export_pack"],
-);
+export const ONE_TIME_PRODUCTS = fromEnvEntries();
 
 // ── Определения продуктов (фичи и лимиты) ───────────────────────────────────
-// Каждый продукт даёт фичи и лимиты ПОВЕРХ базового плана пользователя.
-// Фичи мержатся через OR (если хоть один источник даёт true → фича доступна).
-// Лимиты мержатся через MAX (побеждает наибольшее значение).
-//
-// Ключ должен совпадать со значением в ONE_TIME_PRODUCTS выше.
 
-export const PRODUCTS = {
-  // ключ продукта — хранится в Order.productKey в базе
-  export_pack: {
-    name: "Export Pack",
-    features: { export: true },       // даёт фичу экспорта
-    limits: { storage: 5000 },        // даёт 5000 МБ хранилища
-  },
-};
+export const PRODUCTS = {};
 
 // ── Plan hierarchy (weakest → strongest) ─────────────────────────────────────
 
-export const PLAN_HIERARCHY = ["free", "pro"];
+export const PLAN_HIERARCHY = ["free", "org_creator"];
 
 // ── Plan features & limits ───────────────────────────────────────────────────
 
 export const PLANS = {
   free: {
-    features: { dashboard: true, export: false, apiAccess: false },
-    limits: { projects: 3, storage: 100 },
+    features: { dashboard: true, createOrg: false },
+    limits: { organizations: 0 },
   },
-  pro: {
-    features: { dashboard: true, export: true, apiAccess: true },
-    limits: { projects: Infinity, storage: 50000 },
+  org_creator: {
+    features: { dashboard: true, createOrg: true },
+    limits: { organizations: 3 },
   },
 };
 
 // ── Plan catalog (UI/checkout data) ────────────────────────────────────────
-// Price is in cents. Period is machine-readable ("month", "year").
-// productId is the payment provider's product ID (null for free plan).
 
 export const PLAN_CATALOG = {
   free: {
@@ -77,30 +42,22 @@ export const PLAN_CATALOG = {
     period: "month",
     productId: null,
   },
-  pro: {
-    price: 2900,
+  org_creator: {
+    price: 200,
     currency: "USD",
     period: "month",
-    productId: process.env.CREEM_PRODUCT_PRO,
+    productId: process.env.CREEM_PRODUCT_ORG_CREATOR,
   },
 };
 
 // ── Product catalog (UI/checkout data) ─────────────────────────────────────
 
-export const PRODUCT_CATALOG = {
-  export_pack: {
-    type: "one_time",
-    price: 900,
-    currency: "USD",
-    productId: process.env.CREEM_PRODUCT_EXPORT_PACK,
-  },
-};
+export const PRODUCT_CATALOG = {};
 
 // ── Startup validation ─────────────────────────────────────────────────────────
 
 const requiredProductEnvVars = [
-  "CREEM_PRODUCT_PRO",
-  "CREEM_PRODUCT_EXPORT_PACK",
+  "CREEM_PRODUCT_ORG_CREATOR",
 ];
 
 const missingVars = requiredProductEnvVars.filter((key) => !process.env[key]);
