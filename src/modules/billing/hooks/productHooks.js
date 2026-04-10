@@ -1,12 +1,36 @@
+import Membership from "../../../models/Membership.js";
+import Organization from "../../../models/Organization.js";
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+const getOwnerOrgIds = async (userId) => {
+  const memberships = await Membership.find({
+    userId,
+    role: "owner",
+    status: "active",
+  }).select("orgId").lean();
+
+  const toOrgId = (m) => m.orgId;
+  return memberships.map(toOrgId);
+};
+
+const setOrgsActive = async (userId, active) => {
+  const orgIds = await getOwnerOrgIds(userId);
+  if (orgIds.length === 0) return;
+  await Organization.updateMany({ _id: { $in: orgIds } }, { active });
+};
+
 // ── Product lifecycle hooks ──────────────────────────────────────────────────
-// Add business logic per plan here.
-// Each hook receives (user, subscription) and runs after a state transition.
 
 const PRODUCT_HOOKS = {
-  pro: {
-    onActivate:   async (_user, _subscription) => {},
-    onDeactivate: async (_user, _subscription) => {},
-    onRenew:      async (_user, _subscription) => {},
+  org_creator: {
+    onActivate: async (user) => {
+      await setOrgsActive(user._id || user.id, true);
+    },
+    onDeactivate: async (user) => {
+      await setOrgsActive(user._id || user.id, false);
+    },
+    onRenew: async () => {},
   },
 };
 
