@@ -7,7 +7,8 @@
     "dev": "nodemon --env-file=.env src/app.js",
     "seed": "node src/scripts/seed.js",
     "test": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
-    "test:billing": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js"
+    "test:billing": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
+    "test:notifications": "node --experimental-test-module-mocks --test src/services/__tests__/notificationServices.test.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
