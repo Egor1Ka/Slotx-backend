@@ -133,6 +133,31 @@ const sendBookingTelegramToUser = async (booking, type, user, staffName) => {
   }
 };
 
+const resolveStaffName = async (booking) => {
+  const leadHost = findLeadHost(booking);
+  if (!leadHost) return null;
+  const user = await User.findById(leadHost.userId);
+  return user ? user.name : null;
+};
+
+const hasTelegram = (user) => !!user.telegramChatId;
+
+const sendBookingTelegramNotifications = async (booking, type) => {
+  const userIds = await collectRecipientUserIds(booking);
+  if (userIds.length === 0) return [];
+
+  const users = await User.find({
+    _id: { $in: userIds },
+    telegramChatId: { $ne: null },
+  });
+  const reachable = users.filter(hasTelegram);
+  if (reachable.length === 0) return [];
+
+  const staffName = await resolveStaffName(booking);
+  const sendOne = (user) => sendBookingTelegramToUser(booking, type, user, staffName);
+  return Promise.all(reachable.map(sendOne));
+};
+
 const sendStaffTelegramNotification = async (booking, type) => {
   const leadHost = findLeadHost(booking);
   if (!leadHost) return null;
@@ -178,4 +203,4 @@ const sendStaffTelegramNotification = async (booking, type) => {
   }
 };
 
-export { createBookingNotifications, skipNotifications, sendBookingTelegramToUser, sendStaffTelegramNotification, collectRecipientUserIds };
+export { createBookingNotifications, skipNotifications, sendBookingTelegramToUser, sendStaffTelegramNotification, collectRecipientUserIds, sendBookingTelegramNotifications };

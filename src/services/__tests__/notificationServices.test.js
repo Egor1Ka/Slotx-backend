@@ -8,6 +8,7 @@ const getOrgAdminUserIds = async () => state.adminIds;
 
 const calls = { sent: [] };
 const sendBehavior = { impl: async () => "msg-default" };
+const userBehavior = { find: async () => [], findById: async () => null };
 
 describe("collectRecipientUserIds", () => {
   const ctx = { collectRecipientUserIds: null };
@@ -31,6 +32,12 @@ describe("collectRecipientUserIds", () => {
         },
         initBot: () => {},
         getBot: () => null,
+      },
+    });
+    mock.module("../../modules/user/model/User.js", {
+      defaultExport: {
+        find: (...args) => userBehavior.find(...args),
+        findById: (...args) => userBehavior.findById(...args),
       },
     });
     ({ collectRecipientUserIds: ctx.collectRecipientUserIds } = await import("../notificationServices.js"));
@@ -121,5 +128,86 @@ describe("sendBookingTelegramToUser", () => {
 
     assert.equal(result.status, "failed");
     assert.equal(result.attempts, 1);
+  });
+});
+
+describe("sendBookingTelegramNotifications", () => {
+  const ctx = { sendBookingTelegramNotifications: null };
+
+  before(async () => {
+    const mod = await import("../notificationServices.js");
+    ctx.sendBookingTelegramNotifications = mod.sendBookingTelegramNotifications;
+  });
+
+  beforeEach(() => {
+    calls.sent = [];
+    sendBehavior.impl = async () => "msg-default";
+  });
+
+  it("sends to lead host + admins, deduped", async () => {
+    state.adminIds = ["u-owner", "u-admin"];
+    const users = [
+      { _id: "u-lead",  name: "Lead",  telegramChatId: "chat-lead" },
+      { _id: "u-owner", name: "Owner", telegramChatId: "chat-owner" },
+      { _id: "u-admin", name: "Admin", telegramChatId: "chat-admin" },
+    ];
+    userBehavior.find = async (query) => {
+      const ids = query._id.$in.map(String);
+      const matches = (u) => ids.includes(String(u._id)) && !!u.telegramChatId;
+      return users.filter(matches);
+    };
+    userBehavior.findById = async (id) => users.find((u) => String(u._id) === String(id)) || null;
+
+    const booking = {
+      _id: "b1", orgId: "o1", startAt: new Date(),
+      hosts: [{ userId: "u-lead", role: "lead" }],
+      inviteeSnapshot: {},
+    };
+
+    await ctx.sendBookingTelegramNotifications(booking, "booking_confirmed");
+
+    const chats = calls.sent.map((m) => m.chatId).sort();
+    assert.deepEqual(chats, ["chat-admin", "chat-lead", "chat-owner"]);
+  });
+
+  it("skips users without telegramChatId", async () => {
+    state.adminIds = ["u-owner"];
+    const users = [
+      { _id: "u-lead",  name: "Lead",  telegramChatId: "chat-lead" },
+      { _id: "u-owner", name: "Owner", telegramChatId: null },
+    ];
+    userBehavior.find = async (query) => {
+      const ids = query._id.$in.map(String);
+      const matches = (u) => ids.includes(String(u._id)) && !!u.telegramChatId;
+      return users.filter(matches);
+    };
+    userBehavior.findById = async (id) => users.find((u) => String(u._id) === String(id)) || null;
+
+    const booking = {
+      _id: "b1", orgId: "o1", startAt: new Date(),
+      hosts: [{ userId: "u-lead", role: "lead" }],
+      inviteeSnapshot: {},
+    };
+
+    await ctx.sendBookingTelegramNotifications(booking, "booking_confirmed");
+
+    assert.deepEqual(calls.sent.map((m) => m.chatId), ["chat-lead"]);
+  });
+
+  it("does nothing when no recipients have telegramChatId", async () => {
+    state.adminIds = [];
+    userBehavior.find = async () => [];
+    userBehavior.findById = async () => null;
+
+    const booking = {
+      _id: "b1", orgId: "o1", startAt: new Date(),
+      hosts: [{ userId: "u-lead", role: "lead" }],
+      inviteeSnapshot: {},
+    };
+
+    const result = await ctx.sendBookingTelegramNotifications(booking, "booking_confirmed");
+
+    assert.deepEqual(calls.sent, []);
+    assert.deepEqual(result, []);
   });
 });
