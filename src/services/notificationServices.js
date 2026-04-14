@@ -97,6 +97,42 @@ const collectRecipientUserIds = async (booking) => {
   return dedupeIds(candidateIds);
 };
 
+const sendBookingTelegramToUser = async (booking, type, user, staffName) => {
+  const text = formatNotificationMessage(type, booking, staffName);
+  const notificationData = {
+    bookingId: booking._id,
+    recipientId: user._id,
+    recipientType: "staff",
+    channel: NOTIFICATION_CHANNEL.TELEGRAM,
+    type,
+    scheduledAt: new Date(),
+  };
+
+  if (!text) {
+    console.warn(`No Telegram template for notification type: ${type}`);
+    return createNotification({ ...notificationData, status: NOTIFICATION_STATUS.SKIPPED });
+  }
+
+  try {
+    const externalId = await sendMessage(user.telegramChatId, text);
+    if (!externalId) {
+      return createNotification({ ...notificationData, status: NOTIFICATION_STATUS.SKIPPED });
+    }
+    return createNotification({
+      ...notificationData,
+      status: NOTIFICATION_STATUS.SENT,
+      externalId,
+    });
+  } catch (error) {
+    console.error("Telegram notification failed:", error.message);
+    return createNotification({
+      ...notificationData,
+      status: NOTIFICATION_STATUS.FAILED,
+      attempts: 1,
+    });
+  }
+};
+
 const sendStaffTelegramNotification = async (booking, type) => {
   const leadHost = findLeadHost(booking);
   if (!leadHost) return null;
@@ -142,4 +178,4 @@ const sendStaffTelegramNotification = async (booking, type) => {
   }
 };
 
-export { createBookingNotifications, skipNotifications, sendStaffTelegramNotification, collectRecipientUserIds };
+export { createBookingNotifications, skipNotifications, sendBookingTelegramToUser, sendStaffTelegramNotification, collectRecipientUserIds };

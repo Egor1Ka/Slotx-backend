@@ -1,4 +1,4 @@
-import { describe, it, before, afterEach, mock } from "node:test";
+import { describe, it, before, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 
 const membershipRepoPath = "../../repository/membershipRepository.js";
@@ -6,12 +6,32 @@ const membershipRepoPath = "../../repository/membershipRepository.js";
 const state = { adminIds: [] };
 const getOrgAdminUserIds = async () => state.adminIds;
 
+const calls = { sent: [] };
+const sendBehavior = { impl: async () => "msg-default" };
+
 describe("collectRecipientUserIds", () => {
   const ctx = { collectRecipientUserIds: null };
 
   before(async () => {
     mock.module(membershipRepoPath, {
       namedExports: { getOrgAdminUserIds },
+    });
+    mock.module("../../repository/notificationRepository.js", {
+      namedExports: {
+        createNotification: async (data) => ({ _id: "n1", ...data }),
+        createManyNotifications: async () => [],
+        skipScheduledByBooking: async () => [],
+      },
+    });
+    mock.module("../../providers/telegramProvider.js", {
+      namedExports: {
+        sendMessage: async (chatId, text) => {
+          calls.sent.push({ chatId, text });
+          return sendBehavior.impl(chatId, text);
+        },
+        initBot: () => {},
+        getBot: () => null,
+      },
     });
     ({ collectRecipientUserIds: ctx.collectRecipientUserIds } = await import("../notificationServices.js"));
   });
@@ -55,5 +75,51 @@ describe("collectRecipientUserIds", () => {
     const booking = { orgId: "org1", hosts: [] };
     const result = await ctx.collectRecipientUserIds(booking);
     assert.deepEqual(result.map(String), ["u-admin"]);
+  });
+});
+
+describe("sendBookingTelegramToUser", () => {
+  const ctx = { sendBookingTelegramToUser: null };
+
+  before(async () => {
+    const mod = await import("../notificationServices.js");
+    ctx.sendBookingTelegramToUser = mod.sendBookingTelegramToUser;
+  });
+
+  beforeEach(() => {
+    calls.sent = [];
+    sendBehavior.impl = async () => "msg-default";
+  });
+
+  it("creates SENT notification when sendMessage returns id", async () => {
+    sendBehavior.impl = async () => "msg-42";
+    const booking = { _id: "b1", orgId: "o1", startAt: new Date("2026-04-20T10:00:00Z"), hosts: [], inviteeSnapshot: {} };
+    const user = { _id: "u1", name: "Alice", telegramChatId: "chat-1" };
+    const result = await ctx.sendBookingTelegramToUser(booking, "booking_confirmed", user, "Bob");
+
+    assert.equal(calls.sent.length, 1);
+    assert.equal(calls.sent[0].chatId, "chat-1");
+    assert.equal(result.status, "sent");
+    assert.equal(result.externalId, "msg-42");
+    assert.equal(String(result.recipientId), "u1");
+  });
+
+  it("creates SKIPPED notification when sendMessage returns null", async () => {
+    sendBehavior.impl = async () => null;
+    const booking = { _id: "b1", orgId: "o1", startAt: new Date(), hosts: [], inviteeSnapshot: {} };
+    const user = { _id: "u1", name: "Alice", telegramChatId: "chat-1" };
+    const result = await ctx.sendBookingTelegramToUser(booking, "booking_confirmed", user, "Bob");
+
+    assert.equal(result.status, "skipped");
+  });
+
+  it("creates FAILED notification when sendMessage throws", async () => {
+    sendBehavior.impl = async () => { throw new Error("network down"); };
+    const booking = { _id: "b1", orgId: "o1", startAt: new Date(), hosts: [], inviteeSnapshot: {} };
+    const user = { _id: "u1", name: "Alice", telegramChatId: "chat-1" };
+    const result = await ctx.sendBookingTelegramToUser(booking, "booking_confirmed", user, "Bob");
+
+    assert.equal(result.status, "failed");
+    assert.equal(result.attempts, 1);
   });
 });
