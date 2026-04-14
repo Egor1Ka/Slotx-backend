@@ -9,7 +9,8 @@ const handleGetStaff = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const staff = await getStaffProfile(req.params.id);
+    const { orgId } = req.query;
+    const staff = await getStaffProfile(req.params.id, orgId || undefined);
     if (!staff) return httpResponse(res, generalStatus.NOT_FOUND);
 
     return httpResponse(res, generalStatus.SUCCESS, staff);

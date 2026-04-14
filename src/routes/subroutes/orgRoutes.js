@@ -1,5 +1,5 @@
 import express from "express";
-import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership } from "../../controllers/orgController.js";
+import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership } from "../../controllers/orgController.js";
 import { authMiddleware } from "../../modules/auth/index.js";
 import { requireOrgAdmin } from "../../middleware/orgMiddleware.js";
 import { requireFeature } from "../../modules/billing/middleware/plan.js";
@@ -14,6 +14,7 @@ router.put("/:id", authMiddleware, requireOrgAdmin((req) => req.params.id), hand
 router.get("/:id/staff", handleGetOrgStaff);
 router.post("/:id/staff", authMiddleware, requireOrgAdmin((req) => req.params.id), handleAddStaff);
 router.patch("/:id/staff/:staffId", authMiddleware, handleUpdateStaffBio);
+router.patch("/:id/staff/:staffId/position", authMiddleware, requireOrgAdmin((req) => req.params.id), handleUpdateStaffPosition);
 router.patch("/:id/membership/accept", authMiddleware, handleAcceptInvitation);
 router.delete("/:id/membership/decline", authMiddleware, handleDeclineInvitation);
 

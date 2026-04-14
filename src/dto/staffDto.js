@@ -15,6 +15,7 @@ const toOrgStaffDto = (user, position, bookingCount, status, membership) => ({
   name: user.name,
   avatar: user.avatar,
   position: position ? position.name : null,
+  positionId: membership && membership.positionId ? membership.positionId.toString() : null,
   bio: membership ? membership.bio || null : null,
   bookingCount,
   status: status || "active",

@@ -12,12 +12,15 @@ import {
 
 const router = express.Router();
 
+// Public — client booking flow
 router.post("/", handleCreateBooking);
+router.post("/cancel-by-token", handleCancelByToken);
 router.get("/by-staff", handleGetBookingsByStaff);
 router.get("/:id", handleGetBookingById);
-router.patch("/:id/status", handleUpdateStatus);
-router.patch("/:id/reschedule", handleReschedule);
-router.delete("/:id", handleDeleteBooking);
-router.post("/cancel-by-token", handleCancelByToken);
+
+// Protected — staff/admin operations
+router.patch("/:id/status", authMiddleware, handleUpdateStatus);
+router.patch("/:id/reschedule", authMiddleware, handleReschedule);
+router.delete("/:id", authMiddleware, handleDeleteBooking);
 
 export default router;

@@ -1,4 +1,5 @@
 import express from "express";
+import { authMiddleware } from "../../modules/auth/index.js";
 import {
   handleGetTemplate,
   handlePutTemplate,
@@ -11,12 +12,15 @@ import {
 
 const router = express.Router();
 
+// Public — needed for booking page calendar
 router.get("/templates/by-org/:orgId", handleGetTemplatesByOrg);
 router.get("/overrides/by-org/:orgId", handleGetOverridesByOrg);
 router.get("/template", handleGetTemplate);
-router.put("/template", handlePutTemplate);
 router.get("/overrides", handleGetOverrides);
-router.post("/override", handlePostOverride);
-router.delete("/override/:id", handleDeleteOverride);
+
+// Protected — staff/admin operations
+router.put("/template", authMiddleware, handlePutTemplate);
+router.post("/override", authMiddleware, handlePostOverride);
+router.delete("/override/:id", authMiddleware, handleDeleteOverride);
 
 export default router;

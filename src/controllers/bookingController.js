@@ -61,7 +61,7 @@ const handleCreateBooking = async (req, res) => {
 
 const handleGetBookingsByStaff = async (req, res) => {
   try {
-    const { staffId, dateFrom, dateTo, locationId, status } = req.query;
+    const { staffId, dateFrom, dateTo, locationId, orgId, status } = req.query;
 
     if (!staffId || !isValidObjectId(staffId)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
@@ -80,6 +80,7 @@ const handleGetBookingsByStaff = async (req, res) => {
       dateFrom: new Date(dateFrom),
       dateTo: endOfDay,
       locationId: locationId || undefined,
+      orgId: orgId || undefined,
       statuses,
     });
 

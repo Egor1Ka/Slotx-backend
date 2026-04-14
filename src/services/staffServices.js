@@ -1,16 +1,16 @@
 import { getUserById } from "../modules/user/index.js";
-import { getActiveMembership } from "../repository/membershipRepository.js";
+import { getActiveMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { getRawOrgById } from "../repository/organizationRepository.js";
 import { toStaffDto } from "../dto/staffDto.js";
 
-const buildOrgContactInfo = (org) => ({
+const buildOrgContactInfo = (org, membership) => ({
   orgName: org.name,
   orgLogo: org.settings ? org.settings.logoUrl || null : null,
-  description: org.description || null,
-  address: org.address || null,
-  phone: org.phone || null,
-  website: org.website || null,
+  description: membership.bio || null,
+  address: null,
+  phone: null,
+  website: null,
 });
 
 const buildUserContactInfo = (user) => ({
@@ -22,11 +22,14 @@ const buildUserContactInfo = (user) => ({
   website: user.website || null,
 });
 
-const getStaffProfile = async (id) => {
+const getStaffProfile = async (id, orgId) => {
   const user = await getUserById(id);
   if (!user) return null;
 
-  const membership = await getActiveMembership(id);
+  const membership = orgId
+    ? await getMembershipByUserAndOrg(id, orgId)
+    : await getActiveMembership(id);
+
   const position = membership && membership.positionId
     ? await getPositionById(membership.positionId)
     : null;
@@ -34,13 +37,12 @@ const getStaffProfile = async (id) => {
   const staffDto = toStaffDto(user, position, membership);
 
   const org = membership ? await getRawOrgById(membership.orgId) : null;
-  const orgInfo = {
-    orgName: org ? org.name : null,
-    orgLogo: org && org.settings ? org.settings.logoUrl || null : null,
-  };
-  const contactInfo = buildUserContactInfo(user);
 
-  return { ...staffDto, ...contactInfo, ...orgInfo };
+  const contactInfo = org && membership
+    ? buildOrgContactInfo(org, membership)
+    : buildUserContactInfo(user);
+
+  return { ...staffDto, ...contactInfo };
 };
 
 export { getStaffProfile };

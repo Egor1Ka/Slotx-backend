@@ -3,17 +3,37 @@ import {
   getEventTypesForStaff as repoGetForStaff,
   getEventTypesByOrg as repoGetByOrg,
 } from "../repository/eventTypeRepository.js";
-import { getActiveMembership } from "../repository/membershipRepository.js";
+import { getActiveMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { findByEventTypeAndPosition } from "../repository/positionPricingRepository.js";
 
 const getEventTypeById = async (id) => {
   return repoGetById(id);
 };
 
-const getEventTypesForStaff = async (staffId) => {
-  const membership = await getActiveMembership(staffId);
+const applyPositionPricing = (positionId) => async (eventType) => {
+  if (!positionId || !eventType.orgId) return eventType;
+  const override = await findByEventTypeAndPosition(eventType.id, positionId);
+  if (!override) return eventType;
+  return {
+    ...eventType,
+    price: {
+      amount: override.price.amount,
+      currency: override.price.currency,
+    },
+  };
+};
+
+const getEventTypesForStaff = async (staffId, explicitOrgId) => {
+  const membership = explicitOrgId
+    ? await getMembershipByUserAndOrg(staffId, explicitOrgId)
+    : await getActiveMembership(staffId);
   const orgId = membership ? membership.orgId : null;
   const positionId = membership ? membership.positionId : null;
-  return repoGetForStaff(staffId, orgId, positionId);
+
+  const eventTypes = await repoGetForStaff(staffId, orgId, positionId);
+  if (!positionId) return eventTypes;
+
+  return Promise.all(eventTypes.map(applyPositionPricing(positionId)));
 };
 
 const getEventTypesByOrg = async (orgId) => {

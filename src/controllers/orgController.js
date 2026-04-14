@@ -1,4 +1,4 @@
-import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -107,6 +107,24 @@ const handleUpdateStaffBio = async (req, res) => {
   }
 };
 
+const handleUpdateStaffPosition = async (req, res) => {
+  try {
+    if (!isValidObjectId(req.params.id) || !isValidObjectId(req.params.staffId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const { positionId } = req.body;
+    if (positionId !== null && positionId !== undefined && !isValidObjectId(positionId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const result = await updateStaffPosition(req.params.id, req.params.staffId, positionId);
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
 const handleGetUserOrgs = async (req, res) => {
   try {
     const orgs = await getUserOrganizations(req.user.id);
@@ -187,4 +205,4 @@ const handleGetMyMembership = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };

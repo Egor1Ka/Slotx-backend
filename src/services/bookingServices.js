@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { getEventTypeById } from "../repository/eventTypeRepository.js";
+import { getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { resolvePriceForStaff } from "./positionPricingServices.js";
 import {
   createBooking as repoCreate,
   findConflict,
@@ -44,8 +46,15 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   const inviteeDoc = await findOrCreateInvitee(invitee);
 
-  const amount = eventType.price ? eventType.price.amount : 0;
-  const currency = eventType.price ? eventType.price.currency : "usd";
+  // Резолвим цену с учётом позиции сотрудника (если услуга принадлежит организации)
+  const staffMembership = eventType.orgId
+    ? await getMembershipByUserAndOrg(staffId, eventType.orgId)
+    : null;
+  const staffPositionId = staffMembership ? staffMembership.positionId : null;
+  const resolvedPrice = await resolvePriceForStaff(eventType, staffPositionId);
+
+  const amount = resolvedPrice ? resolvedPrice.amount : 0;
+  const currency = resolvedPrice ? resolvedPrice.currency : "usd";
 
   const bookingData = {
     eventTypeId,

@@ -135,6 +135,20 @@ const updateStaffBio = async (orgId, staffId, bio) => {
   return { bio: membership.bio || null };
 };
 
+const updateStaffPosition = async (orgId, staffId, positionId) => {
+  const membership = await Membership.findOneAndUpdate(
+    { userId: staffId, orgId, status: "active" },
+    { positionId: positionId || null },
+    { new: true },
+  );
+
+  if (!membership) {
+    throw new HttpError(generalStatus.NOT_FOUND);
+  }
+
+  return { positionId: membership.positionId ? membership.positionId.toString() : null };
+};
+
 const getUserOrganizations = async (userId) => {
   const memberships = await getMembershipsByUser(userId);
   const toOrgWithRole = async (membership) => {
@@ -190,4 +204,4 @@ const getMyMembership = async (orgId, userId) => {
   return { role: membership.role, status: membership.status };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership };

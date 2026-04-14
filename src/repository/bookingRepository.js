@@ -26,12 +26,13 @@ const findByStaffAndDate = async (staffId, dateStart, dateEnd) => {
   return docs;
 };
 
-const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, statuses }) => {
+const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, orgId, statuses }) => {
   const query = {
     "hosts.userId": staffId,
     startAt: { $gte: dateFrom, $lte: dateTo },
   };
   if (locationId) query.locationId = locationId;
+  if (orgId) query.orgId = orgId;
   if (statuses) {
     query.status = { $in: statuses };
   } else {

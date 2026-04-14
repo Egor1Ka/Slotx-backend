@@ -15,13 +15,13 @@ const handleGetEventTypes = async (req, res) => {
   try {
     const { staffId, orgId } = req.query;
 
-    if (orgId && isValidObjectId(orgId)) {
+    if (orgId && isValidObjectId(orgId) && !staffId) {
       const eventTypes = await getEventTypesByOrg(orgId);
       return httpResponse(res, generalStatus.SUCCESS, eventTypes);
     }
 
     if (staffId && isValidObjectId(staffId)) {
-      const eventTypes = await getEventTypesForStaff(staffId);
+      const eventTypes = await getEventTypesForStaff(staffId, orgId || undefined);
       return httpResponse(res, generalStatus.SUCCESS, eventTypes);
     }
 
