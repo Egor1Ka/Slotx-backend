@@ -77,18 +77,24 @@ const findLeadHost = (booking) => {
   return booking.hosts.find(isLead) || null;
 };
 
-const sameId = (target) => (id) => String(id) === String(target);
+const toIdKey = (id) => String(id);
 
 const dedupeIds = (ids) => {
-  const reducer = (acc, id) => (acc.some(sameId(id)) ? acc : [...acc, id]);
-  return ids.reduce(reducer, []);
+  const seen = new Set();
+  const keep = (id) => {
+    const key = toIdKey(id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  };
+  return ids.filter(keep);
 };
 
 const collectRecipientUserIds = async (booking) => {
   const leadHost = findLeadHost(booking);
   const adminIds = await getOrgAdminUserIds(booking.orgId);
-  const all = leadHost ? [leadHost.userId, ...adminIds] : adminIds;
-  return dedupeIds(all);
+  const candidateIds = leadHost ? [leadHost.userId, ...adminIds] : adminIds;
+  return dedupeIds(candidateIds);
 };
 
 const sendStaffTelegramNotification = async (booking, type) => {
