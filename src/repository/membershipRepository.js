@@ -94,4 +94,16 @@ const declineInvitation = async (userId, orgId) => {
   );
 };
 
-export { getActiveMembership, getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg, acceptInvitation, declineInvitation };
+// Возвращает userId всех активных owner и admin указанной организации
+const getOrgAdminUserIds = async (orgId) => {
+  if (!orgId) return [];
+  const docs = await Membership.find({
+    orgId,
+    role: { $in: ["owner", "admin"] },
+    status: MEMBERSHIP_STATUS.ACTIVE,
+  }).select("userId");
+  const toUserId = (doc) => doc.userId;
+  return docs.map(toUserId);
+};
+
+export { getActiveMembership, getActiveMembersByOrg, getActiveAndInvitedMembersByOrg, getMembershipsByUser, createMembership, getActiveMembersByPositions, getActiveMembersByUserIds, countByPositionId, getMemberUserIdsByOrg, getMembershipByUserAndOrg, acceptInvitation, declineInvitation, getOrgAdminUserIds };
