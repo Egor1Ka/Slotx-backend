@@ -12,6 +12,7 @@ import {
 import User from "../modules/user/model/User.js";
 import { sendMessage } from "../providers/telegramProvider.js";
 import { formatNotificationMessage } from "./telegramMessageFormatter.js";
+import { getOrgAdminUserIds } from "../repository/membershipRepository.js";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * ONE_HOUR_MS;
@@ -76,6 +77,20 @@ const findLeadHost = (booking) => {
   return booking.hosts.find(isLead) || null;
 };
 
+const sameId = (target) => (id) => String(id) === String(target);
+
+const dedupeIds = (ids) => {
+  const reducer = (acc, id) => (acc.some(sameId(id)) ? acc : [...acc, id]);
+  return ids.reduce(reducer, []);
+};
+
+const collectRecipientUserIds = async (booking) => {
+  const leadHost = findLeadHost(booking);
+  const adminIds = await getOrgAdminUserIds(booking.orgId);
+  const all = leadHost ? [leadHost.userId, ...adminIds] : adminIds;
+  return dedupeIds(all);
+};
+
 const sendStaffTelegramNotification = async (booking, type) => {
   const leadHost = findLeadHost(booking);
   if (!leadHost) return null;
@@ -121,4 +136,4 @@ const sendStaffTelegramNotification = async (booking, type) => {
   }
 };
 
-export { createBookingNotifications, skipNotifications, sendStaffTelegramNotification };
+export { createBookingNotifications, skipNotifications, sendStaffTelegramNotification, collectRecipientUserIds };
