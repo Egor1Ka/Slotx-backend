@@ -60,7 +60,7 @@ const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMod
     locationId: locationId || null,
     validFrom: today,
     validTo: null,
-    timezone: timezone || "UTC",
+    timezone: timezone || DEFAULT_TIMEZONE,
     slotMode: slotMode || "fixed",
     slotStepMin: slotStepMin ?? 30,
     weeklyHours,

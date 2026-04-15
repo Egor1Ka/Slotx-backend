@@ -3,6 +3,7 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { isValidTimezone } from "../shared/utils/timezone.js";
 import { requireOrgAdmin } from "../shared/utils/orgAuth.js";
 import ScheduleOverride from "../models/ScheduleOverride.js";
 
@@ -41,6 +42,7 @@ const putTemplateSchema = {
   weeklyHours: { type: "array", required: true, items: { type: "object", properties: weeklyHourItemSchema } },
   slotMode: { type: "string", required: false },
   slotStepMin: { type: "number", required: false },
+  timezone: { type: "string", required: false },
 };
 
 const handlePutTemplate = async (req, res) => {
@@ -48,6 +50,10 @@ const handlePutTemplate = async (req, res) => {
     const validated = validateSchema(putTemplateSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    if (req.body.timezone !== undefined && !isValidTimezone(req.body.timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
     }
 
     const callerId = req.user.id;
