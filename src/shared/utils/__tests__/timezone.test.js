@@ -1,6 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it, test } from "node:test";
 import assert from "node:assert/strict";
-import { wallClockInTz } from "../timezone.js";
+import { wallClockInTz, todayInTz, addDaysToDateStr } from "../timezone.js";
 
 describe("wallClockInTz", () => {
   it("returns Kyiv wall-clock for UTC iso in DST", () => {
@@ -30,4 +30,21 @@ describe("wallClockInTz", () => {
       0
     );
   });
+});
+
+test("todayInTz returns YYYY-MM-DD format", () => {
+  const today = todayInTz("Europe/Kyiv");
+  assert.match(today, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("addDaysToDateStr handles month boundary forward", () => {
+  assert.equal(addDaysToDateStr("2026-03-31", 1), "2026-04-01");
+});
+
+test("addDaysToDateStr handles month boundary backward", () => {
+  assert.equal(addDaysToDateStr("2026-04-01", -1), "2026-03-31");
+});
+
+test("addDaysToDateStr year boundary", () => {
+  assert.equal(addDaysToDateStr("2025-12-31", 1), "2026-01-01");
 });

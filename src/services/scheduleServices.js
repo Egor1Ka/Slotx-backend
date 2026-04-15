@@ -6,12 +6,14 @@ import {
   findActiveTemplatesByOrg,
 } from "../repository/scheduleTemplateRepository.js";
 import { upsertOverride, findOverridesByStaff, deleteOverrideById, findOverridesByOrg } from "../repository/scheduleOverrideRepository.js";
+import { getRawOrgById } from "../repository/organizationRepository.js";
 import {
   DEFAULT_WEEKLY_HOURS,
   DEFAULT_TIMEZONE,
   DEFAULT_SLOT_MODE,
   DEFAULT_SLOT_STEP_MIN,
 } from "../constants/schedule.js";
+import { todayInTz, addDaysToDateStr, parseWallClockToUtc } from "../shared/utils/timezone.js";
 
 const getActiveTemplate = async (staffId, orgId, locationId, date) => {
   return findActiveTemplateDto(staffId, orgId, locationId, date);
@@ -21,14 +23,14 @@ const createDefaultSchedule = async (staffId, orgId = null) => {
   const existing = await findCurrentTemplate(staffId, orgId, null);
   if (existing) return null;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayStr = todayInTz(DEFAULT_TIMEZONE);
+  const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, DEFAULT_TIMEZONE);
 
   const template = await createTemplate({
     staffId,
     orgId,
     locationId: null,
-    validFrom: today,
+    validFrom: todayUtc,
     validTo: null,
     timezone: DEFAULT_TIMEZONE,
     slotMode: DEFAULT_SLOT_MODE,
@@ -39,28 +41,25 @@ const createDefaultSchedule = async (staffId, orgId = null) => {
   return template;
 };
 
-const yesterday = (date) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() - 1);
-  return d;
-};
-
 const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMode, slotStepMin, timezone }) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const resolvedTimezone = timezone || DEFAULT_TIMEZONE;
+  const todayStr = todayInTz(resolvedTimezone);
+  const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, resolvedTimezone);
+  const yesterdayStr = addDaysToDateStr(todayStr, -1);
+  const yesterdayUtc = parseWallClockToUtc(`${yesterdayStr}T00:00:00`, resolvedTimezone);
 
   const current = await findCurrentTemplate(staffId, orgId, locationId);
   if (current) {
-    await updateTemplateValidTo(current._id, yesterday(today));
+    await updateTemplateValidTo(current._id, yesterdayUtc);
   }
 
   const newTemplate = await createTemplate({
     staffId,
     orgId: orgId || null,
     locationId: locationId || null,
-    validFrom: today,
+    validFrom: todayUtc,
     validTo: null,
-    timezone: timezone || DEFAULT_TIMEZONE,
+    timezone: resolvedTimezone,
     slotMode: slotMode || "fixed",
     slotStepMin: slotStepMin ?? 30,
     weeklyHours,
@@ -86,9 +85,13 @@ const getOverridesByOrg = async (orgId) => {
 };
 
 const getActiveTemplatesByOrg = async (orgId) => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return findActiveTemplatesByOrg(orgId, today)
-}
+  const org = await getRawOrgById(orgId);
+  const orgTimezone = org && org.settings && org.settings.defaultTimezone
+    ? org.settings.defaultTimezone
+    : DEFAULT_TIMEZONE;
+  const todayStr = todayInTz(orgTimezone);
+  const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, orgTimezone);
+  return findActiveTemplatesByOrg(orgId, todayUtc);
+};
 
 export { getActiveTemplate, createDefaultSchedule, rotateTemplate, upsertScheduleOverride, getOverridesByStaff, deleteOverride, getOverridesByOrg, getActiveTemplatesByOrg };
