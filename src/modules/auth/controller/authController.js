@@ -1,6 +1,7 @@
-import { createOauthState, findOrCreateUser, createSession, refreshSession, revokeSession } from "../services/authServices.js";
+import { createOauthState, validateOauthState, findOrCreateUser, createSession, refreshSession, revokeSession } from "../services/authServices.js";
 import providers from "../providers/index.js";
 import { httpResponse, httpResponseError } from "../../../shared/utils/http/httpResponse.js";
+import { HttpError } from "../../../shared/utils/http/httpError.js";
 import { generalStatus } from "../../../shared/utils/http/httpStatus.js";
 import {
   COOKIE_NAMES,
@@ -8,37 +9,45 @@ import {
   accessCookieOptions,
   refreshCookieOptions,
 } from "../utils/cookieOptions.js";
+import { isValidTimezone } from "../../../shared/utils/timezone.js";
 
 const { FRONTEND_URL } = process.env;
 
 // ── Provider handler factories ────────────────────────────────────────────────
 
-const buildProviderLoginHandler = (providerName) => (_req, res) => {
-  const state = createOauthState();
+const buildProviderLoginHandler = (providerName) => (req, res) => {
+  const timezone = req.query.timezone;
+  if (!timezone || !isValidTimezone(timezone)) {
+    httpResponseError(res, new HttpError(400, "timezone_required_or_invalid"));
+    return;
+  }
+  const { state, cookieValue } = createOauthState(timezone);
   const authUrl = providers.getProvider(providerName).buildAuthUrl(state);
 
-  res.cookie(COOKIE_NAMES.state, state, stateCookieOptions);
+  res.cookie(COOKIE_NAMES.state, cookieValue, stateCookieOptions);
   res.redirect(authUrl);
 };
 
 const buildProviderCallbackHandler = (providerName) => async (req, res) => {
   try {
     const { code, state } = req.query;
-    const storedState = req.cookies[COOKIE_NAMES.state];
+    const storedCookieValue = req.cookies[COOKIE_NAMES.state];
 
-    if (!code || !state || !storedState || storedState !== state) {
+    if (!code || !state || !storedCookieValue) {
       httpResponse(res, generalStatus.BAD_REQUEST, {
         message: "Invalid OAuth state",
       });
       return;
     }
 
+    const { timezone } = validateOauthState(storedCookieValue, state);
+
     res.clearCookie(COOKIE_NAMES.state, stateCookieOptions);
 
     const provider = providers.getProvider(providerName);
     const tokens = await provider.exchangeCode(code);
     const profile = await provider.getProfile(tokens);
-    const user = await findOrCreateUser(profile);
+    const user = await findOrCreateUser(profile, timezone);
     const session = await createSession(
       user,
       providerName,
