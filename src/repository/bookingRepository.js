@@ -21,7 +21,8 @@ const findByStaffAndDate = async (staffId, dateStart, dateEnd) => {
   const docs = await Booking.find({
     "hosts.userId": staffId,
     status: { $in: ACTIVE_BOOKING_STATUSES },
-    startAt: { $gte: dateStart, $lt: dateEnd },
+    startAt: { $lt: dateEnd },
+    endAt: { $gt: dateStart },
   });
   return docs;
 };

@@ -11,11 +11,13 @@ const parseHHMM = (str) => {
   return hh * 60 + mm;
 };
 
-const toBookingSlot = (template, bufferAfter, booking) => {
-  const startDate = new Date(booking.startAt);
-  const tzOffset = getTimezoneOffsetMin(startDate, template.timezone);
-  const startMin = startDate.getUTCHours() * 60 + startDate.getUTCMinutes() + tzOffset;
-  const durationMs = booking.endAt.getTime() - booking.startAt.getTime();
+const toBookingSlot = (template, bufferAfter, booking, dateStart, dateEnd) => {
+  const effectiveStart = booking.startAt < dateStart ? dateStart : booking.startAt;
+  const effectiveEnd = booking.endAt > dateEnd ? dateEnd : booking.endAt;
+  const tzOffset = getTimezoneOffsetMin(effectiveStart, template.timezone);
+  const startMin =
+    effectiveStart.getUTCHours() * 60 + effectiveStart.getUTCMinutes() + tzOffset;
+  const durationMs = effectiveEnd.getTime() - effectiveStart.getTime();
   const duration = Math.round(durationMs / 60000) + bufferAfter;
   return { startMin, duration };
 };
@@ -101,7 +103,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const { dateStart, dateEnd } = getDateRange(date, template.timezone);
   const bookings = await findByStaffAndDate(staffId, dateStart, dateEnd);
 
-  const toBooking = (b) => toBookingSlot(template, bufferAfter, b);
+  const toBooking = (b) => toBookingSlot(template, bufferAfter, b, dateStart, dateEnd);
   const bookingSlots = bookings.map(toBooking);
 
   // Добавляем перерыв как фейковый букинг чтобы slot engine его заблокировал
