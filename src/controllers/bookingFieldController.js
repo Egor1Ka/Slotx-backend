@@ -3,6 +3,7 @@ import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
 import { BOOKING_FIELD_TYPES, OWNER_TYPES } from "../models/BookingField.js";
+import { requireOrgAdmin, requireOrgRole } from "../shared/utils/orgAuth.js";
 import {
   getFields,
   createBookingField,
@@ -40,6 +41,12 @@ const handleGetFields = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
+    if (ownerType === "org") {
+      await requireOrgRole(req.user.id, ownerId, ["owner", "admin", "member"]);
+    } else if (ownerType === "user" && String(req.user.id) !== String(ownerId)) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
+    }
+
     const fields = await getFields(ownerId, ownerType, eventTypeId || undefined);
     return httpResponse(res, generalStatus.SUCCESS, fields);
   } catch (error) {
@@ -52,6 +59,13 @@ const handleCreateField = async (req, res) => {
     const validated = validateSchema(createSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, validated.errors);
+    }
+
+    const { ownerId, ownerType } = validated;
+    if (ownerType === "org") {
+      await requireOrgAdmin(req.user.id, ownerId);
+    } else if (ownerType === "user" && String(req.user.id) !== String(ownerId)) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const field = await createBookingField({
