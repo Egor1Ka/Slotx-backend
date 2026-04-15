@@ -113,7 +113,7 @@ const handleGetOverrides = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const overrides = await getOverridesByStaff(staffId, orgId);
+    const overrides = await getOverridesByStaff(staffId, orgId ? orgId : null);
     return httpResponse(res, generalStatus.SUCCESS, overrides);
   } catch (error) {
     return httpResponseError(res, error);
