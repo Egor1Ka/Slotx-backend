@@ -12,7 +12,7 @@ import Membership from "../models/Membership.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { getUserBillingProfile } from "../modules/billing/services/planServices.js";
-import { parseWallClockToUtc } from "../shared/utils/timezone.js";
+import { parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
@@ -71,6 +71,10 @@ const getOrgStaff = async (id, dateStr) => {
 };
 
 const createOrganization = async (data, userId) => {
+  if (!data.timezone || !isValidTimezone(data.timezone)) {
+    throw new Error("timezone_required");
+  }
+
   const plan = await getUserBillingProfile(userId);
   const orgLimit = plan.limits.organizations || 0;
 

@@ -3,13 +3,14 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { isValidTimezone } from "../shared/utils/timezone.js";
 
 const createOrgSchema = {
   name: { type: "string", required: true },
+  timezone: { type: "string", required: true },
   currency: { type: "string", required: false },
   logoUrl: { type: "string", required: false },
   brandColor: { type: "string", required: false },
-  defaultTimezone: { type: "string", required: false },
   defaultCountry: { type: "string", required: false },
 };
 
@@ -60,6 +61,11 @@ const handleCreateOrg = async (req, res) => {
         data: validated.errors,
       });
     }
+
+    if (!isValidTimezone(validated.timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
+    }
+
     const org = await createOrganization(validated, req.user.id);
     return httpResponse(res, generalStatus.CREATED, org);
   } catch (error) {
