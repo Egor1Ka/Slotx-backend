@@ -1,5 +1,5 @@
 import { getUserById } from "../modules/user/index.js";
-import { getActiveMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
 import { getPositionById } from "../repository/positionRepository.js";
 import { getRawOrgById } from "../repository/organizationRepository.js";
 import { toStaffDto } from "../dto/staffDto.js";
@@ -28,7 +28,7 @@ const getStaffProfile = async (id, orgId) => {
 
   const membership = orgId
     ? await getMembershipByUserAndOrg(id, orgId)
-    : await getActiveMembership(id);
+    : null;
 
   const position = membership && membership.positionId
     ? await getPositionById(membership.positionId)
