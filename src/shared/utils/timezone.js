@@ -23,4 +23,38 @@ const parseWallClockToUtc = (isoString, timezone) => {
   return new Date(naive.getTime() - offsetMin * 60000);
 };
 
-export { getTimezoneOffsetMin, parseWallClockToUtc };
+const isValidTimezone = (tz) => {
+  if (!tz || typeof tz !== "string") return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const WEEKDAY_MAP = {
+  Sun: "sun",
+  Mon: "mon",
+  Tue: "tue",
+  Wed: "wed",
+  Thu: "thu",
+  Fri: "fri",
+  Sat: "sat",
+};
+
+const getDayOfWeekInTz = (dateStr, timezone) => {
+  const anchor = new Date(`${dateStr}T12:00:00Z`);
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: timezone,
+  }).format(anchor);
+  return WEEKDAY_MAP[weekday] || "sun";
+};
+
+export {
+  getTimezoneOffsetMin,
+  parseWallClockToUtc,
+  isValidTimezone,
+  getDayOfWeekInTz,
+};
