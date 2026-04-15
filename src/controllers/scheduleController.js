@@ -14,10 +14,7 @@ const handleGetTemplate = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const template = await getActiveTemplate(staffId, orgId, locationId, today);
+    const template = await getActiveTemplate(staffId, orgId, locationId, new Date());
     if (!template) return httpResponse(res, generalStatus.NOT_FOUND);
 
     return httpResponse(res, generalStatus.SUCCESS, template);
