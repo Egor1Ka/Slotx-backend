@@ -4,9 +4,7 @@ import { findOverrideByDate } from "../repository/scheduleOverrideRepository.js"
 import { findByStaffAndDate } from "../repository/bookingRepository.js";
 import { getAvailableSlots } from "../shared/utils/slotEngine.js";
 import { toSlotDto } from "../dto/slotDto.js";
-import { getTimezoneOffsetMin } from "../shared/utils/timezone.js";
-
-const WEEKDAY_INDEX = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+import { getTimezoneOffsetMin, getDayOfWeekInTz } from "../shared/utils/timezone.js";
 
 const parseHHMM = (str) => {
   const [hh, mm] = str.split(":").map(Number);
@@ -87,8 +85,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const isFullDayOff = override && !override.enabled && (!override.slots || override.slots.length === 0);
   if (isFullDayOff) return { slots: [] };
 
-  const requestDate = new Date(date);
-  const dayOfWeek = WEEKDAY_INDEX[requestDate.getDay()];
+  const dayOfWeek = getDayOfWeekInTz(date, template.timezone);
 
   // Частичный выходной: enabled=false со слотами = перерыв (недоступен в указанные часы)
   const isPartialDayOff = override && !override.enabled && override.slots && override.slots.length > 0;
