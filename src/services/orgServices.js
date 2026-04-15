@@ -12,18 +12,20 @@ import Membership from "../models/Membership.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { getUserBillingProfile } from "../modules/billing/services/planServices.js";
+import { parseWallClockToUtc } from "../shared/utils/timezone.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
 };
 
-const getDateRange = (dateStr) => {
-  const date = dateStr ? new Date(dateStr) : new Date();
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+const getDayRange = (dateStr, timezone) => {
+  if (!timezone) throw new Error("timezone_required");
+  const isoStart = `${dateStr}T00:00:00.000Z`;
+  const isoEnd = `${dateStr}T23:59:59.999Z`;
+  return {
+    start: parseWallClockToUtc(isoStart, timezone),
+    end: parseWallClockToUtc(isoEnd, timezone),
+  };
 };
 
 const buildMemberProfile = async (member, dateRange) => {
@@ -45,12 +47,24 @@ const buildMemberProfile = async (member, dateRange) => {
 
 const isNotNull = (item) => item !== null;
 
+const toLocalDateStr = (date) => {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 const getOrgStaff = async (id, dateStr) => {
   const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
+  const timezone = org.settings && org.settings.defaultTimezone
+    ? org.settings.defaultTimezone
+    : "UTC";
+  const resolvedDateStr = dateStr || toLocalDateStr(new Date());
+
   const members = await getActiveAndInvitedMembersByOrg(org.id);
-  const dateRange = getDateRange(dateStr);
+  const dateRange = getDayRange(resolvedDateStr, timezone);
 
   const toBuildProfile = (dateRange) => (member) => buildMemberProfile(member, dateRange);
   const profiles = await Promise.all(members.map(toBuildProfile(dateRange)));
@@ -204,4 +218,4 @@ const getMyMembership = async (orgId, userId) => {
   return { role: membership.role, status: membership.status };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };

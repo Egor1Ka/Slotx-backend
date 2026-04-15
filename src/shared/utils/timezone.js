@@ -89,10 +89,26 @@ const getDayOfWeekInTz = (dateStr, timezone) => {
   return WEEKDAY_MAP[weekday] || "sun";
 };
 
+const todayInTz = (timezone) => {
+  const wc = wallClockInTz(new Date().toISOString(), timezone);
+  return `${wc.year}-${String(wc.month).padStart(2, "0")}-${String(wc.day).padStart(2, "0")}`;
+};
+
+const addDaysToDateStr = (dateStr, days) => {
+  const parts = dateStr.split("-").map(Number);
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+  const utc = new Date(Date.UTC(year, month - 1, day + days));
+  return `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, "0")}-${String(utc.getUTCDate()).padStart(2, "0")}`;
+};
+
 export {
   getTimezoneOffsetMin,
   parseWallClockToUtc,
   isValidTimezone,
   getDayOfWeekInTz,
   wallClockInTz,
+  todayInTz,
+  addDaysToDateStr,
 };
