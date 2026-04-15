@@ -14,6 +14,7 @@ import Organization from "../models/Organization.js";
 import { sendMessage } from "../providers/telegramProvider.js";
 import { formatNotificationMessage } from "./telegramMessageFormatter.js";
 import { getOrgAdminUserIds } from "../repository/membershipRepository.js";
+import { findCurrentTemplate } from "../repository/scheduleTemplateRepository.js";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * ONE_HOUR_MS;
@@ -163,7 +164,13 @@ const sendBookingTelegramNotifications = async (booking, type) => {
   if (reachable.length === 0) return [];
 
   const staffName = await resolveStaffName(booking);
-  const { name: orgName, timezone: orgTimezone } = await resolveOrgContext(booking.orgId);
+  const { name: orgName } = await resolveOrgContext(booking.orgId);
+  const leadHost = findLeadHost(booking);
+  const leadHostId = leadHost ? leadHost.userId.toString() : null;
+  const leadTemplate = leadHostId
+    ? await findCurrentTemplate(leadHostId, booking.orgId ? booking.orgId.toString() : null, null)
+    : null;
+  const orgTimezone = leadTemplate ? leadTemplate.timezone : "Europe/Kyiv";
   const sendOne = (user) => sendBookingTelegramToUser(booking, type, user, staffName, orgName, orgTimezone);
   return Promise.all(reachable.map(sendOne));
 };
