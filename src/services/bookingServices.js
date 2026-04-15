@@ -28,7 +28,7 @@ import {
 } from "../constants/booking.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { bookingStatus } from "../shared/utils/http/httpStatus.js";
-import { parseWallClockToUtc } from "../shared/utils/timezone.js";
+import { parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
 
 const generateToken = () => crypto.randomBytes(32).toString("hex");
 
@@ -38,6 +38,8 @@ const computePaymentStatus = (amount) =>
 const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee, customFieldValues }) => {
   const eventType = await getEventTypeById(eventTypeId);
   if (!eventType) return { error: "eventType_not_found" };
+
+  const clientTimezone = isValidTimezone(timezone) ? timezone : null;
 
   // Парсим wall-clock из запроса в tz расписания (именно в этой tz фронт
   // отрисовывал сетку слотов — иначе бронь сдвинется относительно сетки).
@@ -72,7 +74,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
     locationId: null,
     startAt: startDate,
     endAt: endDate,
-    timezone,
+    timezone: clientTimezone,
     status: amount > 0 ? BOOKING_STATUS.PENDING_PAYMENT : BOOKING_STATUS.CONFIRMED,
     inviteeSnapshot: {
       name: invitee.name,
