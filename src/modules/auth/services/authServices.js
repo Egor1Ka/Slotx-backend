@@ -10,6 +10,7 @@ import {
 import { parseDurationMs } from "../../../shared/utils/duration.js";
 import { REFRESH_BYTES, STATE_BYTES } from "../constants/auth.js";
 import { createDefaultSchedule } from "../../../services/scheduleServices.js";
+import { DEFAULT_TIMEZONE } from "../../../constants/schedule.js";
 
 const { JWT_SECRET, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
 
@@ -55,7 +56,8 @@ const findOrCreateUser = async (profile) => {
 
   const newUser = await createUserRecord(buildNormalizedUser(profile));
 
-  await createDefaultSchedule(newUser.id).catch((err) =>
+  // TODO: pass browser tz from OAuth state (B6.T4)
+  await createDefaultSchedule(newUser.id, null, DEFAULT_TIMEZONE).catch((err) =>
     console.error("[createDefaultSchedule] registration failed:", err.message),
   );
 

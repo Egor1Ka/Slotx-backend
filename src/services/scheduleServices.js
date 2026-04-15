@@ -13,18 +13,30 @@ import {
   DEFAULT_SLOT_MODE,
   DEFAULT_SLOT_STEP_MIN,
 } from "../constants/schedule.js";
-import { todayInTz, addDaysToDateStr, parseWallClockToUtc } from "../shared/utils/timezone.js";
+import { todayInTz, addDaysToDateStr, parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
 
 const getActiveTemplate = async (staffId, orgId, locationId, date) => {
   return findActiveTemplateDto(staffId, orgId, locationId, date);
 };
 
-const createDefaultSchedule = async (staffId, orgId = null) => {
+const resolveTimezoneForSchedule = async (timezone, orgId) => {
+  if (timezone) return timezone;
+  if (!orgId) return null;
+  const org = await getRawOrgById(orgId);
+  return org ? org.timezone : null;
+};
+
+const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => {
+  const resolvedTz = await resolveTimezoneForSchedule(timezone, orgId);
+  if (!resolvedTz || !isValidTimezone(resolvedTz)) {
+    throw new Error("timezone_required");
+  }
+
   const existing = await findCurrentTemplate(staffId, orgId, null);
   if (existing) return null;
 
-  const todayStr = todayInTz(DEFAULT_TIMEZONE);
-  const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, DEFAULT_TIMEZONE);
+  const todayStr = todayInTz(resolvedTz);
+  const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, resolvedTz);
 
   const template = await createTemplate({
     staffId,
@@ -32,7 +44,7 @@ const createDefaultSchedule = async (staffId, orgId = null) => {
     locationId: null,
     validFrom: todayUtc,
     validTo: null,
-    timezone: DEFAULT_TIMEZONE,
+    timezone: resolvedTz,
     slotMode: DEFAULT_SLOT_MODE,
     slotStepMin: DEFAULT_SLOT_STEP_MIN,
     weeklyHours: DEFAULT_WEEKLY_HOURS,
