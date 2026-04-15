@@ -153,7 +153,7 @@ describe("sendBookingTelegramNotifications", () => {
 
   it("sends to lead host + admins, deduped, with org name in text", async () => {
     state.adminIds = ["u-owner", "u-admin"];
-    orgBehavior.findById = async () => ({ name: "Acme", settings: { defaultTimezone: "Europe/Kyiv" } });
+    orgBehavior.findById = async () => ({ name: "Acme", timezone: "Europe/Kyiv" });
     const users = [
       { _id: "u-lead",  name: "Lead",  telegramChatId: "chat-lead" },
       { _id: "u-owner", name: "Owner", telegramChatId: "chat-owner" },

@@ -58,9 +58,7 @@ const getOrgStaff = async (id, dateStr) => {
   const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
-  const timezone = org.settings && org.settings.defaultTimezone
-    ? org.settings.defaultTimezone
-    : "UTC";
+  const timezone = org.timezone || "UTC";
   const resolvedDateStr = dateStr || toLocalDateStr(new Date());
 
   const members = await getActiveAndInvitedMembersByOrg(org.id);
@@ -87,9 +85,9 @@ const createOrganization = async (data, userId) => {
 
   const orgData = {
     name: data.name,
+    timezone: data.timezone,
     currency: data.currency || "UAH",
     settings: {
-      defaultTimezone: data.defaultTimezone || "Europe/Kyiv",
       defaultCountry: data.defaultCountry || "UA",
       brandColor: data.brandColor || undefined,
       logoUrl: data.logoUrl || undefined,

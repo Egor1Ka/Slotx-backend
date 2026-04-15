@@ -86,9 +86,7 @@ const getOverridesByOrg = async (orgId) => {
 
 const getActiveTemplatesByOrg = async (orgId) => {
   const org = await getRawOrgById(orgId);
-  const orgTimezone = org && org.settings && org.settings.defaultTimezone
-    ? org.settings.defaultTimezone
-    : DEFAULT_TIMEZONE;
+  const orgTimezone = org && org.timezone ? org.timezone : DEFAULT_TIMEZONE;
   const todayStr = todayInTz(orgTimezone);
   const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, orgTimezone);
   return findActiveTemplatesByOrg(orgId, todayUtc);

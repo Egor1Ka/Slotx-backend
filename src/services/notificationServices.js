@@ -146,7 +146,7 @@ const resolveOrgContext = async (orgId) => {
   if (!orgId) return { name: null, timezone: null };
   const org = await Organization.findById(orgId);
   if (!org) return { name: null, timezone: null };
-  const timezone = org.settings && org.settings.defaultTimezone ? org.settings.defaultTimezone : null;
+  const timezone = org.timezone || null;
   return { name: org.name, timezone };
 };
 

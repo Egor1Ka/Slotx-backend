@@ -19,8 +19,8 @@ const DB_URI = "mongodb://localhost:27017/myDatabase";
 
 const buildOrganizationData = () => ({
   name: "Барбершоп Чемпіон",
+  timezone: "Europe/Kyiv",
   settings: {
-    defaultTimezone: "Europe/Kyiv",
     defaultCountry: "UA",
     brandColor: "#1a1a2e",
   },
