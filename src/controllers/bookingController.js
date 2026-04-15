@@ -80,7 +80,7 @@ const handleGetBookingsByStaff = async (req, res) => {
       dateFrom: new Date(dateFrom),
       dateTo: endOfDay,
       locationId: locationId || undefined,
-      orgId: orgId || undefined,
+      orgId: orgId ? orgId : null,
       statuses,
     });
 

@@ -3,7 +3,7 @@ import {
   getEventTypesForStaff as repoGetForStaff,
   getEventTypesByOrg as repoGetByOrg,
 } from "../repository/eventTypeRepository.js";
-import { getActiveMembership, getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
 import { findByEventTypeAndPosition } from "../repository/positionPricingRepository.js";
 
 const getEventTypeById = async (id) => {
@@ -24,15 +24,14 @@ const applyPositionPricing = (positionId) => async (eventType) => {
 };
 
 const getEventTypesForStaff = async (staffId, explicitOrgId) => {
-  const membership = explicitOrgId
-    ? await getMembershipByUserAndOrg(staffId, explicitOrgId)
-    : await getActiveMembership(staffId);
+  if (!explicitOrgId) {
+    return repoGetForStaff(staffId, null, null);
+  }
+  const membership = await getMembershipByUserAndOrg(staffId, explicitOrgId);
   const orgId = membership ? membership.orgId : null;
   const positionId = membership ? membership.positionId : null;
-
   const eventTypes = await repoGetForStaff(staffId, orgId, positionId);
   if (!positionId) return eventTypes;
-
   return Promise.all(eventTypes.map(applyPositionPricing(positionId)));
 };
 

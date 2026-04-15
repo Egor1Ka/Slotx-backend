@@ -32,7 +32,7 @@ const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, orgI
     startAt: { $gte: dateFrom, $lte: dateTo },
   };
   if (locationId) query.locationId = locationId;
-  if (orgId) query.orgId = orgId;
+  if (orgId !== undefined) query.orgId = orgId;
   if (statuses) {
     query.status = { $in: statuses };
   } else {
