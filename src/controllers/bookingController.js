@@ -52,6 +52,9 @@ const handleCreateBooking = async (req, res) => {
     if (result.error === "eventType_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
+    if (result.error === "template_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
     const dto = toBookingCreatedDto(result.raw, result.eventType);
     return httpResponse(res, generalStatus.CREATED, dto);
   } catch (error) {
@@ -181,6 +184,9 @@ const handleReschedule = async (req, res) => {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
     if (result && result.error === "eventType_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    if (result && result.error === "template_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
     return httpResponse(res, generalStatus.SUCCESS, result);

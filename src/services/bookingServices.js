@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { getEventTypeById } from "../repository/eventTypeRepository.js";
 import { getMembershipByUserAndOrg } from "../repository/membershipRepository.js";
+import { findActiveTemplate } from "../repository/scheduleTemplateRepository.js";
 import { resolvePriceForStaff } from "./positionPricingServices.js";
 import {
   createBooking as repoCreate,
@@ -38,8 +39,14 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
   const eventType = await getEventTypeById(eventTypeId);
   if (!eventType) return { error: "eventType_not_found" };
 
+  // Парсим wall-clock из запроса в tz расписания (именно в этой tz фронт
+  // отрисовывал сетку слотов — иначе бронь сдвинется относительно сетки).
+  const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(startAt));
+  if (!template) return { error: "template_not_found" };
+  const gridTimezone = template.timezone;
+
   const durationMs = eventType.durationMin * 60 * 1000;
-  const startDate = parseWallClockToUtc(startAt, timezone);
+  const startDate = parseWallClockToUtc(startAt, gridTimezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
   const conflict = await findConflict(staffId, startDate, endDate);
@@ -161,11 +168,17 @@ const rescheduleBookingById = async (id, newStartAt) => {
   const eventType = await getEventTypeById(eventTypeId.toString());
   if (!eventType) return { error: "eventType_not_found" };
 
+  const staffId = booking.hosts[0].userId.toString();
+
+  // Парсим wall-clock в tz активного шаблона расписания, как и createBooking.
+  const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(newStartAt));
+  if (!template) return { error: "template_not_found" };
+  const gridTimezone = template.timezone;
+
   const durationMs = eventType.durationMin * 60 * 1000;
-  const startDate = parseWallClockToUtc(newStartAt, booking.timezone);
+  const startDate = parseWallClockToUtc(newStartAt, gridTimezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
-  const staffId = booking.hosts[0].userId.toString();
   const conflict = await findConflict(staffId, startDate, endDate);
   if (conflict && conflict._id.toString() !== id) {
     throw new HttpError(bookingStatus.SLOT_TAKEN);
