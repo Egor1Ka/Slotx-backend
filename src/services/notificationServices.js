@@ -10,6 +10,7 @@ import {
   HOST_ROLE,
 } from "../constants/booking.js";
 import User from "../modules/user/model/User.js";
+import Organization from "../models/Organization.js";
 import { sendMessage } from "../providers/telegramProvider.js";
 import { formatNotificationMessage } from "./telegramMessageFormatter.js";
 import { getOrgAdminUserIds } from "../repository/membershipRepository.js";
@@ -97,8 +98,8 @@ const collectRecipientUserIds = async (booking) => {
   return dedupeIds(candidateIds);
 };
 
-const sendBookingTelegramToUser = async (booking, type, user, staffName) => {
-  const text = formatNotificationMessage(type, booking, staffName);
+const sendBookingTelegramToUser = async (booking, type, user, staffName, orgName) => {
+  const text = formatNotificationMessage(type, booking, staffName, orgName);
   const notificationData = {
     bookingId: booking._id,
     recipientId: user._id,
@@ -140,6 +141,12 @@ const resolveStaffName = async (booking) => {
   return user ? user.name : null;
 };
 
+const resolveOrgName = async (orgId) => {
+  if (!orgId) return null;
+  const org = await Organization.findById(orgId);
+  return org ? org.name : null;
+};
+
 const hasTelegram = (user) => !!user.telegramChatId;
 
 const sendBookingTelegramNotifications = async (booking, type) => {
@@ -154,7 +161,8 @@ const sendBookingTelegramNotifications = async (booking, type) => {
   if (reachable.length === 0) return [];
 
   const staffName = await resolveStaffName(booking);
-  const sendOne = (user) => sendBookingTelegramToUser(booking, type, user, staffName);
+  const orgName = await resolveOrgName(booking.orgId);
+  const sendOne = (user) => sendBookingTelegramToUser(booking, type, user, staffName, orgName);
   return Promise.all(reachable.map(sendOne));
 };
 

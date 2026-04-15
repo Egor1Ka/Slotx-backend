@@ -9,6 +9,7 @@ const getOrgAdminUserIds = async () => state.adminIds;
 const calls = { sent: [] };
 const sendBehavior = { impl: async () => "msg-default" };
 const userBehavior = { find: async () => [], findById: async () => null };
+const orgBehavior = { findById: async () => null };
 
 describe("collectRecipientUserIds", () => {
   const ctx = { collectRecipientUserIds: null };
@@ -38,6 +39,11 @@ describe("collectRecipientUserIds", () => {
       defaultExport: {
         find: (...args) => userBehavior.find(...args),
         findById: (...args) => userBehavior.findById(...args),
+      },
+    });
+    mock.module("../../models/Organization.js", {
+      defaultExport: {
+        findById: (...args) => orgBehavior.findById(...args),
       },
     });
     ({ collectRecipientUserIds: ctx.collectRecipientUserIds } = await import("../notificationServices.js"));
@@ -142,10 +148,12 @@ describe("sendBookingTelegramNotifications", () => {
   beforeEach(() => {
     calls.sent = [];
     sendBehavior.impl = async () => "msg-default";
+    orgBehavior.findById = async () => null;
   });
 
-  it("sends to lead host + admins, deduped", async () => {
+  it("sends to lead host + admins, deduped, with org name in text", async () => {
     state.adminIds = ["u-owner", "u-admin"];
+    orgBehavior.findById = async () => ({ name: "Acme" });
     const users = [
       { _id: "u-lead",  name: "Lead",  telegramChatId: "chat-lead" },
       { _id: "u-owner", name: "Owner", telegramChatId: "chat-owner" },
@@ -168,6 +176,7 @@ describe("sendBookingTelegramNotifications", () => {
 
     const chats = calls.sent.map((m) => m.chatId).sort();
     assert.deepEqual(chats, ["chat-admin", "chat-lead", "chat-owner"]);
+    assert.ok(calls.sent.every((m) => m.text.includes("🏢 Acme")), "org name must appear in every message");
   });
 
   it("skips users without telegramChatId", async () => {

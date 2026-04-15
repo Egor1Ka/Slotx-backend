@@ -34,33 +34,35 @@ const formatServiceName = (booking) => {
 const formatStaffName = (staffName) =>
   staffName ? `\n👨‍💼 ${staffName}` : "";
 
-const formatBookingDetails = (booking, staffName) =>
-  `👤 ${formatInviteeName(booking)}${formatContactInfo(booking)}${formatServiceName(booking)}${formatStaffName(staffName)}\n📅 ${formatDateTime(booking.startAt)}`;
+const formatOrgName = (orgName) => (orgName ? `\n🏢 ${orgName}` : "");
+
+const formatBookingDetails = (booking, staffName, orgName) =>
+  `👤 ${formatInviteeName(booking)}${formatContactInfo(booking)}${formatServiceName(booking)}${formatStaffName(staffName)}${formatOrgName(orgName)}\n📅 ${formatDateTime(booking.startAt)}`;
 
 const MESSAGE_TEMPLATES = {
-  [NOTIFICATION_TYPE.BOOKING_CONFIRMED]: (booking, staffName) =>
-    `✅ <b>Новий запис</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_CONFIRMED]: (booking, staffName, orgName) =>
+    `✅ <b>Новий запис</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 
-  [NOTIFICATION_TYPE.BOOKING_CANCELLED]: (booking, staffName) =>
-    `❌ <b>Запис скасовано</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_CANCELLED]: (booking, staffName, orgName) =>
+    `❌ <b>Запис скасовано</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 
-  [NOTIFICATION_TYPE.BOOKING_RESCHEDULED]: (booking, staffName) =>
-    `🔄 <b>Запис перенесено</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_RESCHEDULED]: (booking, staffName, orgName) =>
+    `🔄 <b>Запис перенесено</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 
-  [NOTIFICATION_TYPE.BOOKING_COMPLETED]: (booking, staffName) =>
-    `✔️ <b>Запис завершено</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_COMPLETED]: (booking, staffName, orgName) =>
+    `✔️ <b>Запис завершено</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 
-  [NOTIFICATION_TYPE.BOOKING_NO_SHOW]: (booking, staffName) =>
-    `🚫 <b>Клієнт не з'явився</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_NO_SHOW]: (booking, staffName, orgName) =>
+    `🚫 <b>Клієнт не з'явився</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 
-  [NOTIFICATION_TYPE.BOOKING_STATUS_CHANGED]: (booking, staffName) =>
-    `🔔 <b>Статус змінено</b>\n\n${formatBookingDetails(booking, staffName)}`,
+  [NOTIFICATION_TYPE.BOOKING_STATUS_CHANGED]: (booking, staffName, orgName) =>
+    `🔔 <b>Статус змінено</b>\n\n${formatBookingDetails(booking, staffName, orgName)}`,
 };
 
-const formatNotificationMessage = (type, booking, staffName) => {
+const formatNotificationMessage = (type, booking, staffName, orgName) => {
   const template = MESSAGE_TEMPLATES[type];
   if (!template) return null;
-  return template(booking, staffName);
+  return template(booking, staffName, orgName);
 };
 
 export { formatNotificationMessage };
