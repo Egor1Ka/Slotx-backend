@@ -3,6 +3,8 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { requireOrgAdmin } from "../shared/utils/orgAuth.js";
+import ScheduleOverride from "../models/ScheduleOverride.js";
 
 const handleGetTemplate = async (req, res) => {
   try {
@@ -48,6 +50,14 @@ const handlePutTemplate = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
     }
 
+    const callerId = req.user.id;
+    const { staffId, orgId } = req.body;
+    if (orgId) {
+      await requireOrgAdmin(callerId, orgId);
+    } else if (callerId !== staffId) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
+    }
+
     const template = await rotateTemplate(req.body);
     return httpResponse(res, generalStatus.SUCCESS, template);
   } catch (error) {
@@ -66,6 +76,14 @@ const handlePostOverride = async (req, res) => {
     const validated = validateSchema(overrideSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    const callerId = req.user.id;
+    const { staffId, orgId } = req.body;
+    if (orgId) {
+      await requireOrgAdmin(callerId, orgId);
+    } else if (callerId !== staffId) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const override = await upsertScheduleOverride(req.body);
@@ -107,6 +125,16 @@ const handleDeleteOverride = async (req, res) => {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const existing = await ScheduleOverride.findById(id);
+    if (!existing) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    const callerId = req.user.id;
+    if (existing.orgId) {
+      await requireOrgAdmin(callerId, existing.orgId);
+    } else if (String(existing.staffId) !== String(callerId)) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const deleted = await deleteOverride(id);
