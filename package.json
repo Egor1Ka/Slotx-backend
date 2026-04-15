@@ -8,7 +8,8 @@
     "seed": "node src/scripts/seed.js",
     "test": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
     "test:billing": "node --experimental-test-module-mocks --test src/modules/billing/__tests__/billing.test.js",
-    "test:notifications": "node --experimental-test-module-mocks --test src/services/__tests__/notificationServices.test.js"
+    "test:notifications": "node --experimental-test-module-mocks --test src/services/__tests__/notificationServices.test.js",
+    "lint:tz": "node scripts/check-tz.mjs src"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

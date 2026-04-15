@@ -289,7 +289,7 @@ const makeToday = () => {
 
 const makeTomorrow = (today) => {
   const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 1); // tz-ok: seed script, UTC-midnight Date advanced by 1 day for test fixture only
   return tomorrow;
 };
 
