@@ -4,20 +4,13 @@ import { findOverrideByDate } from "../repository/scheduleOverrideRepository.js"
 import { findByStaffAndDate } from "../repository/bookingRepository.js";
 import { getAvailableSlots } from "../shared/utils/slotEngine.js";
 import { toSlotDto } from "../dto/slotDto.js";
+import { getTimezoneOffsetMin } from "../shared/utils/timezone.js";
 
 const WEEKDAY_INDEX = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 const parseHHMM = (str) => {
   const [hh, mm] = str.split(":").map(Number);
   return hh * 60 + mm;
-};
-
-const getTimezoneOffsetMin = (date, timezone) => {
-  const utcStr = date.toLocaleString("en-US", { timeZone: "UTC" });
-  const tzStr = date.toLocaleString("en-US", { timeZone: timezone });
-  const utcDate = new Date(utcStr);
-  const tzDate = new Date(tzStr);
-  return Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
 };
 
 const toBookingSlot = (template, bufferAfter, booking) => {

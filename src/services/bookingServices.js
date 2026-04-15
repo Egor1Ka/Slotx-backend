@@ -27,6 +27,7 @@ import {
 } from "../constants/booking.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { bookingStatus } from "../shared/utils/http/httpStatus.js";
+import { parseWallClockToUtc } from "../shared/utils/timezone.js";
 
 const generateToken = () => crypto.randomBytes(32).toString("hex");
 
@@ -38,7 +39,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
   if (!eventType) return { error: "eventType_not_found" };
 
   const durationMs = eventType.durationMin * 60 * 1000;
-  const startDate = new Date(startAt);
+  const startDate = parseWallClockToUtc(startAt, timezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
   const conflict = await findConflict(staffId, startDate, endDate);
@@ -161,7 +162,7 @@ const rescheduleBookingById = async (id, newStartAt) => {
   if (!eventType) return { error: "eventType_not_found" };
 
   const durationMs = eventType.durationMin * 60 * 1000;
-  const startDate = new Date(newStartAt);
+  const startDate = parseWallClockToUtc(newStartAt, booking.timezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
   const staffId = booking.hosts[0].userId.toString();
