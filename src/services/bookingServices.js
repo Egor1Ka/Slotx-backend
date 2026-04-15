@@ -17,7 +17,7 @@ import { findOrCreateInvitee } from "../repository/inviteeRepository.js";
 import {
   createBookingNotifications,
   skipNotifications,
-  sendStaffTelegramNotification,
+  sendBookingTelegramNotifications,
 } from "./notificationServices.js";
 import {
   BOOKING_STATUS,
@@ -86,7 +86,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   const rawBooking = await findBookingById(booking.id);
   await createBookingNotifications(rawBooking);
-  sendStaffTelegramNotification(rawBooking, NOTIFICATION_TYPE.BOOKING_CONFIRMED).catch((error) =>
+  sendBookingTelegramNotifications(rawBooking, NOTIFICATION_TYPE.BOOKING_CONFIRMED).catch((error) =>
     console.error("Telegram notification error:", error.message),
   );
 
@@ -103,7 +103,7 @@ const cancelBookingById = async (id, reason) => {
 
   const cancelled = await repoCancel(id, reason);
   await skipNotifications(id);
-  sendStaffTelegramNotification(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
+  sendBookingTelegramNotifications(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
     console.error("Telegram notification error:", error.message),
   );
   return cancelled;
@@ -115,7 +115,7 @@ const cancelBookingByToken = async (cancelToken, reason) => {
 
   const cancelled = await repoCancel(booking._id, reason);
   await skipNotifications(booking._id);
-  sendStaffTelegramNotification(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
+  sendBookingTelegramNotifications(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
     console.error("Telegram notification error:", error.message),
   );
   return cancelled;
@@ -144,7 +144,7 @@ const updateBookingStatus = async (id, status) => {
 
   const notificationType = getNotificationType(status);
   if (notificationType) {
-    sendStaffTelegramNotification(booking, notificationType).catch((error) =>
+    sendBookingTelegramNotifications(booking, notificationType).catch((error) =>
       console.error("Telegram notification error:", error.message),
     );
   }
@@ -172,7 +172,7 @@ const rescheduleBookingById = async (id, newStartAt) => {
 
   const rescheduled = await repoReschedule(id, startDate, endDate);
   const updatedBooking = await findBookingById(id);
-  sendStaffTelegramNotification(updatedBooking, NOTIFICATION_TYPE.BOOKING_RESCHEDULED).catch((error) =>
+  sendBookingTelegramNotifications(updatedBooking, NOTIFICATION_TYPE.BOOKING_RESCHEDULED).catch((error) =>
     console.error("Telegram notification error:", error.message),
   );
   return rescheduled;
