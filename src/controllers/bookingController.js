@@ -12,6 +12,7 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { isValidTimezone, parseWallClockToUtc } from "../shared/utils/timezone.js";
 
 const createBookingSchema = {
   eventTypeId: { type: "string", required: true },
@@ -64,7 +65,7 @@ const handleCreateBooking = async (req, res) => {
 
 const handleGetBookingsByStaff = async (req, res) => {
   try {
-    const { staffId, dateFrom, dateTo, locationId, orgId, status } = req.query;
+    const { staffId, dateFrom, dateTo, locationId, orgId, status, timezone } = req.query;
 
     if (!staffId || !isValidObjectId(staffId)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
@@ -72,16 +73,19 @@ const handleGetBookingsByStaff = async (req, res) => {
     if (!dateFrom || !dateTo) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
+    if (!timezone || !isValidTimezone(timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "required, must be IANA" } });
+    }
 
     const statuses = status ? status.split(",") : undefined;
 
-    const endOfDay = new Date(dateTo);
-    endOfDay.setHours(23, 59, 59, 999);
+    const dateFromUtc = parseWallClockToUtc(`${dateFrom}T00:00:00`, timezone);
+    const dateToUtc = parseWallClockToUtc(`${dateTo}T23:59:59.999`, timezone);
 
     const bookings = await getBookingsByStaff({
       staffId,
-      dateFrom: new Date(dateFrom),
-      dateTo: endOfDay,
+      dateFrom: dateFromUtc,
+      dateTo: dateToUtc,
       locationId: locationId || undefined,
       orgId: orgId ? orgId : null,
       statuses,
