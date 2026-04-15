@@ -51,19 +51,25 @@ const getNowMin = (dateStr, timezone) => {
   return now.getUTCHours() * 60 + now.getUTCMinutes() + tzOffset;
 };
 
+const parseDateStr = (dateStr) => {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return { year, month: month - 1, day };
+};
+
 const getDateRange = (dateStr, timezone) => {
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  const { year, month, day } = parseDateStr(dateStr);
   const dayStart = new Date(Date.UTC(year, month, day, 0, 0, 0));
   const dayEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
-  const offset = getTimezoneOffsetMin(dayStart, timezone) * 60000;
+  const offsetStart = getTimezoneOffsetMin(dayStart, timezone) * 60000;
+  const offsetEnd = getTimezoneOffsetMin(dayEnd, timezone) * 60000;
   return {
-    dateStart: new Date(dayStart.getTime() - offset),
-    dateEnd: new Date(dayEnd.getTime() - offset),
+    dateStart: new Date(dayStart.getTime() - offsetStart),
+    dateEnd: new Date(dayEnd.getTime() - offsetEnd),
   };
 };
+
+// Экспортируется только для unit-тестов.
+const getDateRangeForTest = getDateRange;
 
 const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMode: querySlotMode }) => {
   const eventType = await getEventTypeById(eventTypeId);
@@ -134,4 +140,4 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   return { slots };
 };
 
-export { getSlotsForDate };
+export { getSlotsForDate, getDateRangeForTest };

@@ -5,6 +5,7 @@ import {
   isValidTimezone,
   getDayOfWeekInTz,
 } from "../shared/utils/timezone.js";
+import { getDateRangeForTest } from "../services/slotServices.js";
 
 test("getTimezoneOffsetMin: Europe/Kyiv in April (DST) = +180", () => {
   const d = new Date("2026-04-15T12:00:00Z");
@@ -55,4 +56,22 @@ test("getDayOfWeekInTz: 2026-04-19 в UTC = sun", () => {
 test("getDayOfWeekInTz: одна дата, разные tz — weekday стабилен (используется 12:00 UTC anchor)", () => {
   assert.equal(getDayOfWeekInTz("2026-04-15", "America/Los_Angeles"), "wed");
   assert.equal(getDayOfWeekInTz("2026-04-15", "Asia/Tokyo"), "wed");
+});
+
+test("getDateRange: 2026-04-15 в Europe/Kyiv (+3 DST) → 2026-04-14T21:00 .. 2026-04-15T20:59:59.999", () => {
+  const { dateStart, dateEnd } = getDateRangeForTest("2026-04-15", "Europe/Kyiv");
+  assert.equal(dateStart.toISOString(), "2026-04-14T21:00:00.000Z");
+  assert.equal(dateEnd.toISOString(), "2026-04-15T20:59:59.999Z");
+});
+
+test("getDateRange: 2026-04-15 в UTC → 2026-04-15T00:00 .. 2026-04-15T23:59:59.999", () => {
+  const { dateStart, dateEnd } = getDateRangeForTest("2026-04-15", "UTC");
+  assert.equal(dateStart.toISOString(), "2026-04-15T00:00:00.000Z");
+  assert.equal(dateEnd.toISOString(), "2026-04-15T23:59:59.999Z");
+});
+
+test("getDateRange: 2026-04-15 в America/Los_Angeles (-7 DST) → 2026-04-15T07:00 .. 2026-04-16T06:59:59.999", () => {
+  const { dateStart, dateEnd } = getDateRangeForTest("2026-04-15", "America/Los_Angeles");
+  assert.equal(dateStart.toISOString(), "2026-04-15T07:00:00.000Z");
+  assert.equal(dateEnd.toISOString(), "2026-04-16T06:59:59.999Z");
 });
