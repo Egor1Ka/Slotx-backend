@@ -32,7 +32,20 @@ const resolveWorkWindow = (override, template, dayOfWeek) => {
   return { workStart: parseHHMM(dayEntry.slots[0].start), workEnd: parseHHMM(dayEntry.slots[0].end) };
 };
 
-const getNowMin = (timezone) => {
+const getTodayStrInTz = (timezone) => {
+  const now = new Date();
+  return now.toLocaleDateString("en-CA", { timeZone: timezone });
+};
+
+// Cutoff for "this slot is already past" check. Сравнивается с минутами
+// начала слота внутри запрошенной даты, поэтому возвращаем:
+// - для прошлых дат → Infinity (все слоты считаем прошедшими)
+// - для будущих дат → -Infinity (ни один слот не прошедший)
+// - для сегодня → текущую минуту дня в указанной таймзоне
+const getNowMin = (dateStr, timezone) => {
+  const today = getTodayStrInTz(timezone);
+  if (dateStr < today) return Number.POSITIVE_INFINITY;
+  if (dateStr > today) return Number.NEGATIVE_INFINITY;
   const now = new Date();
   const tzOffset = getTimezoneOffsetMin(now, timezone);
   return now.getUTCHours() * 60 + now.getUTCMinutes() + tzOffset;
@@ -102,7 +115,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
 
   const slotMode = querySlotMode || template.slotMode || "fixed";
 
-  const nowMin = getNowMin(template.timezone);
+  const nowMin = getNowMin(date, template.timezone);
 
   const rawSlots = getAvailableSlots({
     workStart,
