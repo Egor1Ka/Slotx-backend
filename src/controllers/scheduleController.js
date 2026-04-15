@@ -39,7 +39,7 @@ const putTemplateSchema = {
   weeklyHours: { type: "array", required: true, items: { type: "object", properties: weeklyHourItemSchema } },
   slotMode: { type: "string", required: false },
   slotStepMin: { type: "number", required: false },
-  timezone: { type: "string", required: false },
+  timezone: { type: "string", required: true },
 };
 
 const handlePutTemplate = async (req, res) => {
@@ -49,7 +49,7 @@ const handlePutTemplate = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
     }
 
-    if (req.body.timezone !== undefined && !isValidTimezone(req.body.timezone)) {
+    if (!isValidTimezone(req.body.timezone)) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
     }
 

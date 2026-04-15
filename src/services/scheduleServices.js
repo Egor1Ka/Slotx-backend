@@ -54,7 +54,10 @@ const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => 
 };
 
 const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMode, slotStepMin, timezone }) => {
-  const resolvedTimezone = timezone || DEFAULT_TIMEZONE;
+  if (!timezone || !isValidTimezone(timezone)) {
+    throw new Error("timezone_required");
+  }
+  const resolvedTimezone = timezone;
   const todayStr = todayInTz(resolvedTimezone);
   const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, resolvedTimezone);
   const yesterdayStr = addDaysToDateStr(todayStr, -1);
