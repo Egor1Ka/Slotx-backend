@@ -58,7 +58,8 @@ const getOrgStaff = async (id, dateStr) => {
   const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
-  const timezone = org.timezone || "UTC";
+  if (!org.timezone) throw new Error("org_timezone_required");
+  const timezone = org.timezone;
   const resolvedDateStr = dateStr || toLocalDateStr(new Date());
 
   const members = await getActiveAndInvitedMembersByOrg(org.id);

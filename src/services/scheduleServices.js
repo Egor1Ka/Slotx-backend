@@ -9,7 +9,6 @@ import { upsertOverride, findOverridesByStaff, deleteOverrideById, findOverrides
 import { getRawOrgById } from "../repository/organizationRepository.js";
 import {
   DEFAULT_WEEKLY_HOURS,
-  DEFAULT_TIMEZONE,
   DEFAULT_SLOT_MODE,
   DEFAULT_SLOT_STEP_MIN,
 } from "../constants/schedule.js";
@@ -101,7 +100,8 @@ const getOverridesByOrg = async (orgId) => {
 
 const getActiveTemplatesByOrg = async (orgId) => {
   const org = await getRawOrgById(orgId);
-  const orgTimezone = org && org.timezone ? org.timezone : DEFAULT_TIMEZONE;
+  if (!org || !org.timezone) throw new Error("org_timezone_required");
+  const orgTimezone = org.timezone;
   const todayStr = todayInTz(orgTimezone);
   const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, orgTimezone);
   return findActiveTemplatesByOrg(orgId, todayUtc);
