@@ -153,7 +153,7 @@ describe("sendBookingTelegramNotifications", () => {
 
   it("sends to lead host + admins, deduped, with org name in text", async () => {
     state.adminIds = ["u-owner", "u-admin"];
-    orgBehavior.findById = async () => ({ name: "Acme" });
+    orgBehavior.findById = async () => ({ name: "Acme", settings: { defaultTimezone: "Europe/Kyiv" } });
     const users = [
       { _id: "u-lead",  name: "Lead",  telegramChatId: "chat-lead" },
       { _id: "u-owner", name: "Owner", telegramChatId: "chat-owner" },
@@ -167,7 +167,7 @@ describe("sendBookingTelegramNotifications", () => {
     userBehavior.findById = async (id) => users.find((u) => String(u._id) === String(id)) || null;
 
     const booking = {
-      _id: "b1", orgId: "o1", startAt: new Date(),
+      _id: "b1", orgId: "o1", startAt: new Date("2026-04-15T12:00:00Z"),
       hosts: [{ userId: "u-lead", role: "lead" }],
       inviteeSnapshot: {},
     };
@@ -177,6 +177,7 @@ describe("sendBookingTelegramNotifications", () => {
     const chats = calls.sent.map((m) => m.chatId).sort();
     assert.deepEqual(chats, ["chat-admin", "chat-lead", "chat-owner"]);
     assert.ok(calls.sent.every((m) => m.text.includes("🏢 Acme")), "org name must appear in every message");
+    assert.ok(calls.sent.every((m) => m.text.includes("15.04.2026 15:00")), "time must be formatted in Kyiv timezone (UTC+3)");
   });
 
   it("skips users without telegramChatId", async () => {
