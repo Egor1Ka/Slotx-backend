@@ -7,9 +7,10 @@ const createBooking = async (data) => {
   return toBookingDto(doc);
 };
 
-const findConflict = async (staffId, startAt, endAt) => {
+const findConflict = async (staffId, startAt, endAt, orgId = null) => {
   const doc = await Booking.findOne({
     "hosts.userId": staffId,
+    orgId: orgId || null,
     status: { $in: ACTIVE_BOOKING_STATUSES },
     startAt: { $lt: endAt },
     endAt: { $gt: startAt },

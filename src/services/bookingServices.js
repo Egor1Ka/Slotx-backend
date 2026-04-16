@@ -51,7 +51,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
   const startDate = parseWallClockToUtc(startAt, gridTimezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
-  const conflict = await findConflict(staffId, startDate, endDate);
+  const conflict = await findConflict(staffId, startDate, endDate, eventType.orgId || null);
   if (conflict) throw new HttpError(bookingStatus.SLOT_TAKEN);
 
   const inviteeDoc = await findOrCreateInvitee(invitee);
@@ -181,7 +181,7 @@ const rescheduleBookingById = async (id, newStartAt) => {
   const startDate = parseWallClockToUtc(newStartAt, gridTimezone);
   const endDate = new Date(startDate.getTime() + durationMs);
 
-  const conflict = await findConflict(staffId, startDate, endDate);
+  const conflict = await findConflict(staffId, startDate, endDate, eventType.orgId || null);
   if (conflict && conflict._id.toString() !== id) {
     throw new HttpError(bookingStatus.SLOT_TAKEN);
   }
