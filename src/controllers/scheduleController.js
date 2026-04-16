@@ -39,7 +39,7 @@ const putTemplateSchema = {
   weeklyHours: { type: "array", required: true, items: { type: "object", properties: weeklyHourItemSchema } },
   slotMode: { type: "string", required: false },
   slotStepMin: { type: "number", required: false },
-  timezone: { type: "string", required: true },
+  timezone: { type: "string", required: false },
 };
 
 const handlePutTemplate = async (req, res) => {
@@ -49,12 +49,15 @@ const handlePutTemplate = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
     }
 
-    if (!isValidTimezone(req.body.timezone)) {
+    const { staffId, orgId } = req.body;
+    if (!orgId && !req.body.timezone) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "required for personal schedules" } });
+    }
+    if (req.body.timezone && !isValidTimezone(req.body.timezone)) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
     }
 
     const callerId = req.user.id;
-    const { staffId, orgId } = req.body;
     if (orgId) {
       await requireOrgAdmin(callerId, orgId);
     } else if (callerId !== staffId) {

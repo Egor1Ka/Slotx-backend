@@ -1,3 +1,5 @@
+import { getRawOrgById } from "../../repository/organizationRepository.js";
+
 const getTimezoneOffsetMin = (date, timezone) => {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: timezone,
@@ -121,6 +123,20 @@ const addDaysToDateStr = (dateStr, days) => {
   return `${utc.getUTCFullYear()}-${String(utc.getUTCMonth() + 1).padStart(2, "0")}-${String(utc.getUTCDate()).padStart(2, "0")}`;
 };
 
+const getOrgTimezone = async (orgId) => {
+  if (!orgId) return null;
+  const org = await getRawOrgById(orgId);
+  return org?.timezone ?? null;
+};
+
+const resolveScheduleTimezone = async (template, getOrgTimezone) => {
+  if (template.orgId) {
+    const orgTz = await getOrgTimezone(template.orgId);
+    return orgTz || "UTC";
+  }
+  return template.timezone || "UTC";
+};
+
 export {
   getTimezoneOffsetMin,
   parseWallClockToUtc,
@@ -129,4 +145,6 @@ export {
   wallClockInTz,
   todayInTz,
   addDaysToDateStr,
+  getOrgTimezone,
+  resolveScheduleTimezone,
 };

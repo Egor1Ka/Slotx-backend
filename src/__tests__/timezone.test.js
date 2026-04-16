@@ -5,6 +5,7 @@ import {
   parseWallClockToUtc,
   isValidTimezone,
   getDayOfWeekInTz,
+  resolveScheduleTimezone,
 } from "../shared/utils/timezone.js";
 import { getDateRangeForTest } from "../services/slotServices.js";
 
@@ -110,4 +111,32 @@ test("parseWallClockToUtc: null input returns epoch (Date(null) = Date(0))", () 
 test("parseWallClockToUtc: null timezone returns naive Date", () => {
   const r2 = parseWallClockToUtc("2026-04-15T10:00:00", null);
   assert.ok(!isNaN(r2.getTime()));
+});
+
+test("resolveScheduleTimezone: org template uses org timezone", async () => {
+  const template = { timezone: null, orgId: "org1" };
+  const getOrgTz = async (orgId) => orgId === "org1" ? "Europe/Kyiv" : null;
+  const result = await resolveScheduleTimezone(template, getOrgTz);
+  assert.equal(result, "Europe/Kyiv");
+});
+
+test("resolveScheduleTimezone: personal template uses template timezone", async () => {
+  const template = { timezone: "America/New_York", orgId: null };
+  const getOrgTz = async () => null;
+  const result = await resolveScheduleTimezone(template, getOrgTz);
+  assert.equal(result, "America/New_York");
+});
+
+test("resolveScheduleTimezone: fallback to UTC when org has no timezone", async () => {
+  const template = { timezone: null, orgId: "org1" };
+  const getOrgTz = async () => null;
+  const result = await resolveScheduleTimezone(template, getOrgTz);
+  assert.equal(result, "UTC");
+});
+
+test("resolveScheduleTimezone: personal template without timezone falls back to UTC", async () => {
+  const template = { timezone: null, orgId: null };
+  const getOrgTz = async () => null;
+  const result = await resolveScheduleTimezone(template, getOrgTz);
+  assert.equal(result, "UTC");
 });

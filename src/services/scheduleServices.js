@@ -12,21 +12,29 @@ import {
   DEFAULT_SLOT_MODE,
   DEFAULT_SLOT_STEP_MIN,
 } from "../constants/schedule.js";
-import { todayInTz, addDaysToDateStr, parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
+import { todayInTz, addDaysToDateStr, parseWallClockToUtc, isValidTimezone, getOrgTimezone, resolveScheduleTimezone } from "../shared/utils/timezone.js";
 
 const getActiveTemplate = async (staffId, orgId, locationId, date) => {
   return findActiveTemplateDto(staffId, orgId, locationId, date);
 };
 
-const resolveTimezoneForSchedule = async (timezone, orgId) => {
-  if (timezone) return timezone;
-  if (!orgId) return null;
-  const org = await getRawOrgById(orgId);
-  return org ? org.timezone : null;
+const resolveStaffTimezone = async ({ staffId, orgId = null, locationId = null }) => {
+  const now = new Date();
+  const template = await findActiveTemplateDto(staffId, orgId, locationId, now);
+  if (!template) {
+    if (orgId) {
+      const orgTz = await getOrgTimezone(orgId);
+      return orgTz ?? null;
+    }
+    return null;
+  }
+  return await resolveScheduleTimezone(template, getOrgTimezone);
 };
 
 const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => {
-  const resolvedTz = await resolveTimezoneForSchedule(timezone, orgId);
+  const resolvedTz = orgId
+    ? await getOrgTimezone(orgId)
+    : timezone;
   if (!resolvedTz || !isValidTimezone(resolvedTz)) {
     throw new Error("timezone_required");
   }
@@ -43,7 +51,7 @@ const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => 
     locationId: null,
     validFrom: todayUtc,
     validTo: null,
-    timezone: resolvedTz,
+    timezone: orgId ? null : resolvedTz,
     slotMode: DEFAULT_SLOT_MODE,
     slotStepMin: DEFAULT_SLOT_STEP_MIN,
     weeklyHours: DEFAULT_WEEKLY_HOURS,
@@ -53,10 +61,12 @@ const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => 
 };
 
 const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMode, slotStepMin, timezone }) => {
-  if (!timezone || !isValidTimezone(timezone)) {
+  const resolvedTimezone = orgId
+    ? await getOrgTimezone(orgId)
+    : timezone;
+  if (!resolvedTimezone || !isValidTimezone(resolvedTimezone)) {
     throw new Error("timezone_required");
   }
-  const resolvedTimezone = timezone;
   const todayStr = todayInTz(resolvedTimezone);
   const todayUtc = parseWallClockToUtc(`${todayStr}T00:00:00`, resolvedTimezone);
   const yesterdayStr = addDaysToDateStr(todayStr, -1);
@@ -73,7 +83,7 @@ const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMod
     locationId: locationId || null,
     validFrom: todayUtc,
     validTo: null,
-    timezone: resolvedTimezone,
+    timezone: orgId ? null : resolvedTimezone,
     slotMode: slotMode || "fixed",
     slotStepMin: slotStepMin ?? 30,
     weeklyHours,
@@ -107,4 +117,4 @@ const getActiveTemplatesByOrg = async (orgId) => {
   return findActiveTemplatesByOrg(orgId, todayUtc);
 };
 
-export { getActiveTemplate, createDefaultSchedule, rotateTemplate, upsertScheduleOverride, getOverridesByStaff, deleteOverride, getOverridesByOrg, getActiveTemplatesByOrg };
+export { getActiveTemplate, resolveStaffTimezone, createDefaultSchedule, rotateTemplate, upsertScheduleOverride, getOverridesByStaff, deleteOverride, getOverridesByOrg, getActiveTemplatesByOrg };

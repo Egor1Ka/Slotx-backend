@@ -28,7 +28,7 @@ import {
 } from "../constants/booking.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { bookingStatus } from "../shared/utils/http/httpStatus.js";
-import { parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
+import { parseWallClockToUtc, isValidTimezone, resolveScheduleTimezone, getOrgTimezone } from "../shared/utils/timezone.js";
 
 const generateToken = () => crypto.randomBytes(32).toString("hex");
 
@@ -45,7 +45,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
   // отрисовывал сетку слотов — иначе бронь сдвинется относительно сетки).
   const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(startAt));
   if (!template) return { error: "template_not_found" };
-  const gridTimezone = template.timezone;
+  const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
 
   const durationMs = eventType.durationMin * 60 * 1000;
   const startDate = parseWallClockToUtc(startAt, gridTimezone);
@@ -175,7 +175,7 @@ const rescheduleBookingById = async (id, newStartAt) => {
   // Парсим wall-clock в tz активного шаблона расписания, как и createBooking.
   const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(newStartAt));
   if (!template) return { error: "template_not_found" };
-  const gridTimezone = template.timezone;
+  const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
 
   const durationMs = eventType.durationMin * 60 * 1000;
   const startDate = parseWallClockToUtc(newStartAt, gridTimezone);

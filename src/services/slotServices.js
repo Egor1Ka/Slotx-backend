@@ -4,17 +4,17 @@ import { findOverrideByDate } from "../repository/scheduleOverrideRepository.js"
 import { findByStaffAndDate } from "../repository/bookingRepository.js";
 import { getAvailableSlots } from "../shared/utils/slotEngine.js";
 import { toSlotDto } from "../dto/slotDto.js";
-import { getTimezoneOffsetMin, getDayOfWeekInTz } from "../shared/utils/timezone.js";
+import { getTimezoneOffsetMin, getDayOfWeekInTz, resolveScheduleTimezone, getOrgTimezone } from "../shared/utils/timezone.js";
 
 const parseHHMM = (str) => {
   const [hh, mm] = str.split(":").map(Number);
   return hh * 60 + mm;
 };
 
-const toBookingSlot = (template, bufferAfter, booking, dateStart, dateEnd) => {
+const toBookingSlot = (timezone, bufferAfter, booking, dateStart, dateEnd) => {
   const effectiveStart = booking.startAt < dateStart ? dateStart : booking.startAt;
   const effectiveEnd = booking.endAt > dateEnd ? dateEnd : booking.endAt;
-  const tzOffset = getTimezoneOffsetMin(effectiveStart, template.timezone);
+  const tzOffset = getTimezoneOffsetMin(effectiveStart, timezone);
   const startMin =
     effectiveStart.getUTCHours() * 60 + effectiveStart.getUTCMinutes() + tzOffset;
   const durationMs = effectiveEnd.getTime() - effectiveStart.getTime();
@@ -81,13 +81,15 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const template = await findActiveTemplate(staffId, undefined, locationId || null, new Date(date));
   if (!template) return { error: "template_not_found" };
 
+  const timezone = await resolveScheduleTimezone(template, getOrgTimezone);
+
   const override = await findOverrideByDate(staffId, template.orgId, template.locationId, new Date(date));
 
   // Полный выходной: enabled=false и нет слотов (или слоты пустые)
   const isFullDayOff = override && !override.enabled && (!override.slots || override.slots.length === 0);
   if (isFullDayOff) return { slots: [] };
 
-  const dayOfWeek = getDayOfWeekInTz(date, template.timezone);
+  const dayOfWeek = getDayOfWeekInTz(date, timezone);
 
   // Частичный выходной: enabled=false со слотами = перерыв (недоступен в указанные часы)
   const isPartialDayOff = override && !override.enabled && override.slots && override.slots.length > 0;
@@ -100,10 +102,10 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
 
   const bufferAfter = eventType.bufferAfter || 0;
 
-  const { dateStart, dateEnd } = getDateRange(date, template.timezone);
+  const { dateStart, dateEnd } = getDateRange(date, timezone);
   const bookings = await findByStaffAndDate(staffId, dateStart, dateEnd);
 
-  const toBooking = (b) => toBookingSlot(template, bufferAfter, b, dateStart, dateEnd);
+  const toBooking = (b) => toBookingSlot(timezone, bufferAfter, b, dateStart, dateEnd);
   const bookingSlots = bookings.map(toBooking);
 
   // Добавляем перерыв как фейковый букинг чтобы slot engine его заблокировал
@@ -120,7 +122,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
 
   const slotMode = querySlotMode || template.slotMode || "fixed";
 
-  const nowMin = getNowMin(date, template.timezone);
+  const nowMin = getNowMin(date, timezone);
 
   const rawSlots = getAvailableSlots({
     workStart,

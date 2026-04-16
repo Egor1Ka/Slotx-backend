@@ -12,7 +12,7 @@ const DATE_TIME_FORMAT_OPTIONS = {
 const formatDateTime = (date, timezone) => {
   const formatter = new Intl.DateTimeFormat("uk-UA", {
     ...DATE_TIME_FORMAT_OPTIONS,
-    timeZone: timezone || "Europe/Kyiv",
+    timeZone: timezone || "UTC",
   });
   const parts = formatter.formatToParts(new Date(date));
   const lookup = (type) => {

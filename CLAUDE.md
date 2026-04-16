@@ -225,14 +225,21 @@ generalStatus.ERROR         // 500
 - All `Date` fields in MongoDB are **UTC**
 - Timezone strings: IANA identifiers (`"Europe/Kyiv"`, `"America/New_York"`)
 
-### Timezone Priority (highest → lowest)
-1. **`ScheduleTemplate.timezone`** — source of truth for slot grid, booking parsing, notifications
-2. **`Organization.timezone`** — default for new schedules; fallback when template unavailable
-3. **`"UTC"`** — last-resort fallback; never hardcode a specific city
+### Timezone Priority
+1. **Org schedule** → `Organization.timezone` (single source, `ScheduleTemplate.timezone` is `null`)
+2. **Personal schedule** → `ScheduleTemplate.timezone`
+3. **Fallback** → `"UTC"` (never hardcode a specific city)
+
+`ScheduleTemplate.timezone` exists ONLY for personal schedules (`orgId === null`).
+For org schedules, the field is absent — timezone is resolved from `Organization`.
+
+### Resolver
+All services use `resolveScheduleTimezone(template, getOrgTimezone)` from `src/shared/utils/timezone.js`.
+Never read `template.timezone` directly — always go through the resolver.
 
 ### Parsing Input
 - Frontend sends `startAt` as naive wall-clock: `"2026-04-15T14:00:00"` (no `Z`, no offset)
-- Backend resolves `template.timezone` and calls `parseWallClockToUtc(startAt, template.timezone)`
+- Backend resolves timezone via `resolveScheduleTimezone()` and calls `parseWallClockToUtc(startAt, resolvedTimezone)`
 - `parseWallClockToUtc` uses double-conversion to handle DST transitions safely
 
 ### Notification Timezone Resolution

@@ -13,6 +13,7 @@ import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
 import { isValidTimezone, parseWallClockToUtc } from "../shared/utils/timezone.js";
+import { resolveStaffTimezone } from "../services/scheduleServices.js";
 
 const createBookingSchema = {
   eventTypeId: { type: "string", required: true },
@@ -65,7 +66,7 @@ const handleCreateBooking = async (req, res) => {
 
 const handleGetBookingsByStaff = async (req, res) => {
   try {
-    const { staffId, dateFrom, dateTo, locationId, orgId, status, timezone } = req.query;
+    const { staffId, dateFrom, dateTo, locationId, orgId, status } = req.query;
 
     if (!staffId || !isValidObjectId(staffId)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
@@ -73,8 +74,14 @@ const handleGetBookingsByStaff = async (req, res) => {
     if (!dateFrom || !dateTo) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
+
+    const timezone = await resolveStaffTimezone({
+      staffId,
+      orgId: orgId || null,
+      locationId: locationId || null,
+    });
     if (!timezone || !isValidTimezone(timezone)) {
-      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "required, must be IANA" } });
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "not_configured_for_staff" } });
     }
 
     const statuses = status ? status.split(",") : undefined;
