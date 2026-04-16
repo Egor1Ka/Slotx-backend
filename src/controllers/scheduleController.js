@@ -58,9 +58,9 @@ const handlePutTemplate = async (req, res) => {
     }
 
     const callerId = req.user.id;
-    if (orgId) {
+    if (orgId && callerId !== staffId) {
       await requireOrgAdmin(callerId, orgId);
-    } else if (callerId !== staffId) {
+    } else if (!orgId && callerId !== staffId) {
       return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
@@ -86,9 +86,9 @@ const handlePostOverride = async (req, res) => {
 
     const callerId = req.user.id;
     const { staffId, orgId } = req.body;
-    if (orgId) {
+    if (orgId && callerId !== staffId) {
       await requireOrgAdmin(callerId, orgId);
-    } else if (callerId !== staffId) {
+    } else if (!orgId && callerId !== staffId) {
       return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
