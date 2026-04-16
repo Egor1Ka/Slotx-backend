@@ -154,28 +154,27 @@ const handleGetBookingById = async (req, res) => {
   }
 };
 
-const ALLOWED_STATUS_TRANSITIONS = {
-  pending_payment: ["confirmed", "cancelled"],
-  confirmed: ["completed", "no_show", "cancelled"],
-};
-
 const handleUpdateStatus = async (req, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
-    const { status } = req.body;
-    if (!status) return httpResponse(res, generalStatus.BAD_REQUEST);
+    const { statusId } = req.body;
+    if (!statusId || !isValidObjectId(statusId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
 
     const existing = await getBookingById(req.params.id);
     if (!existing) return httpResponse(res, generalStatus.NOT_FOUND);
 
-    const allowed = ALLOWED_STATUS_TRANSITIONS[existing.status];
-    if (!allowed || !allowed.includes(status)) {
+    // Свободные переходы — валидируем только что statusId существует и не архивирован
+    const { findById } = await import("../repository/bookingStatusRepository.js");
+    const targetStatus = await findById(statusId);
+    if (!targetStatus || targetStatus.isArchived) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const updated = await updateBookingStatusService(req.params.id, status);
+    const updated = await updateBookingStatusService(req.params.id, statusId);
     return httpResponse(res, generalStatus.SUCCESS, updated);
   } catch (error) {
     return httpResponseError(res, error);
