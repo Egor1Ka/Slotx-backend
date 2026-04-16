@@ -11,6 +11,7 @@ import { parseDurationMs } from "../../../shared/utils/duration.js";
 import { REFRESH_BYTES, STATE_BYTES } from "../constants/auth.js";
 import { createDefaultSchedule } from "../../../services/scheduleServices.js";
 import { isValidTimezone } from "../../../shared/utils/timezone.js";
+import { seedDefaultStatuses } from "../../../services/bookingStatusServices.js";
 
 const { JWT_SECRET, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
 
@@ -73,6 +74,9 @@ const findOrCreateUser = async (profile, timezone) => {
   if (!timezone || !isValidTimezone(timezone)) throw new Error("timezone_required");
   await createDefaultSchedule(newUser.id, null, timezone).catch((err) =>
     console.error("[createDefaultSchedule] registration failed:", err.message),
+  );
+  await seedDefaultStatuses(null, newUser.id).catch((err) =>
+    console.error("[seedDefaultStatuses] registration failed:", err.message),
   );
 
   return newUser;

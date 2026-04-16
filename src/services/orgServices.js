@@ -7,6 +7,7 @@ import { toOrgStaffDto } from "../dto/staffDto.js";
 import { toOrgDto, toOrgListItemDto } from "../dto/orgDto.js";
 import { MEMBERSHIP_STATUS } from "../constants/booking.js";
 import { createDefaultSchedule } from "./scheduleServices.js";
+import { seedDefaultStatuses } from "./bookingStatusServices.js";
 import Organization from "../models/Organization.js";
 import Membership from "../models/Membership.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
@@ -110,6 +111,9 @@ const createOrganization = async (data, userId) => {
 
   await createDefaultSchedule(userId, org.id).catch((err) =>
     console.error("[createDefaultSchedule] org creation failed:", err.message),
+  );
+  await seedDefaultStatuses(org.id, null).catch((err) =>
+    console.error("[seedDefaultStatuses] org creation failed:", err.message),
   );
 
   return org;
