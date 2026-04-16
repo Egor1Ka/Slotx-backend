@@ -43,7 +43,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   // Парсим wall-clock из запроса в tz расписания (именно в этой tz фронт
   // отрисовывал сетку слотов — иначе бронь сдвинется относительно сетки).
-  const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(startAt));
+  const template = await findActiveTemplate(staffId, eventType.orgId || null, null, new Date(startAt));
   if (!template) return { error: "template_not_found" };
   const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
 
@@ -173,7 +173,7 @@ const rescheduleBookingById = async (id, newStartAt) => {
   const staffId = booking.hosts[0].userId.toString();
 
   // Парсим wall-clock в tz активного шаблона расписания, как и createBooking.
-  const template = await findActiveTemplate(staffId, undefined, eventType.orgId || null, new Date(newStartAt));
+  const template = await findActiveTemplate(staffId, eventType.orgId || null, null, new Date(newStartAt));
   if (!template) return { error: "template_not_found" };
   const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
 
