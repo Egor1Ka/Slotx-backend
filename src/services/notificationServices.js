@@ -164,13 +164,13 @@ const sendBookingTelegramNotifications = async (booking, type) => {
   if (reachable.length === 0) return [];
 
   const staffName = await resolveStaffName(booking);
-  const { name: orgName } = await resolveOrgContext(booking.orgId);
+  const { name: orgName, timezone: orgTz } = await resolveOrgContext(booking.orgId);
   const leadHost = findLeadHost(booking);
   const leadHostId = leadHost ? leadHost.userId.toString() : null;
   const leadTemplate = leadHostId
     ? await findCurrentTemplate(leadHostId, booking.orgId ? booking.orgId.toString() : null, null)
     : null;
-  const orgTimezone = leadTemplate ? leadTemplate.timezone : "Europe/Kyiv";
+  const orgTimezone = leadTemplate?.timezone ?? orgTz ?? "UTC";
   const sendOne = (user) => sendBookingTelegramToUser(booking, type, user, staffName, orgName, orgTimezone);
   return Promise.all(reachable.map(sendOne));
 };

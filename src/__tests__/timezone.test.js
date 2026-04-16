@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   getTimezoneOffsetMin,
+  parseWallClockToUtc,
   isValidTimezone,
   getDayOfWeekInTz,
 } from "../shared/utils/timezone.js";
@@ -74,4 +75,39 @@ test("getDateRange: 2026-04-15 в America/Los_Angeles (-7 DST) → 2026-04-15T07
   const { dateStart, dateEnd } = getDateRangeForTest("2026-04-15", "America/Los_Angeles");
   assert.equal(dateStart.toISOString(), "2026-04-15T07:00:00.000Z");
   assert.equal(dateEnd.toISOString(), "2026-04-16T06:59:59.999Z");
+});
+
+test("parseWallClockToUtc: basic conversion Europe/Kyiv 14:00 (DST +3)", () => {
+  const result = parseWallClockToUtc("2026-04-15T14:00:00", "Europe/Kyiv");
+  assert.equal(result.toISOString(), "2026-04-15T11:00:00.000Z");
+});
+
+test("parseWallClockToUtc: UTC passthrough", () => {
+  const result = parseWallClockToUtc("2026-04-15T14:00:00", "UTC");
+  assert.equal(result.toISOString(), "2026-04-15T14:00:00.000Z");
+});
+
+test("parseWallClockToUtc: America/New_York 10:00 (DST -4)", () => {
+  const result = parseWallClockToUtc("2026-04-15T10:00:00", "America/New_York");
+  assert.equal(result.toISOString(), "2026-04-15T14:00:00.000Z");
+});
+
+test("parseWallClockToUtc: strips Z suffix and parses as wall-clock", () => {
+  const result = parseWallClockToUtc("2026-04-15T14:00:00Z", "Europe/Kyiv");
+  assert.equal(result.toISOString(), "2026-04-15T11:00:00.000Z");
+});
+
+test("parseWallClockToUtc: DST spring-forward — 04:30 Kyiv on transition day", () => {
+  const result = parseWallClockToUtc("2026-03-29T04:30:00", "Europe/Kyiv");
+  assert.equal(result.toISOString(), "2026-03-29T01:30:00.000Z");
+});
+
+test("parseWallClockToUtc: null input returns epoch (Date(null) = Date(0))", () => {
+  const r1 = parseWallClockToUtc(null, "UTC");
+  assert.equal(r1.getTime(), new Date(null).getTime());
+});
+
+test("parseWallClockToUtc: null timezone returns naive Date", () => {
+  const r2 = parseWallClockToUtc("2026-04-15T10:00:00", null);
+  assert.ok(!isNaN(r2.getTime()));
 });

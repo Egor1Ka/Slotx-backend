@@ -219,6 +219,39 @@ generalStatus.NOT_FOUND     // 404
 generalStatus.ERROR         // 500
 ```
 
+## Timezone Contract
+
+### Storage
+- All `Date` fields in MongoDB are **UTC**
+- Timezone strings: IANA identifiers (`"Europe/Kyiv"`, `"America/New_York"`)
+
+### Timezone Priority (highest → lowest)
+1. **`ScheduleTemplate.timezone`** — source of truth for slot grid, booking parsing, notifications
+2. **`Organization.timezone`** — default for new schedules; fallback when template unavailable
+3. **`"UTC"`** — last-resort fallback; never hardcode a specific city
+
+### Parsing Input
+- Frontend sends `startAt` as naive wall-clock: `"2026-04-15T14:00:00"` (no `Z`, no offset)
+- Backend resolves `template.timezone` and calls `parseWallClockToUtc(startAt, template.timezone)`
+- `parseWallClockToUtc` uses double-conversion to handle DST transitions safely
+
+### Notification Timezone Resolution
+- Telegram/email: resolve timezone via fallback chain `template.timezone → org.timezone → "UTC"`
+- Never hardcode `"Europe/Kyiv"` or any specific city as fallback
+
+### Override Dates
+- Override `date` field stored as `Date` at UTC midnight (`2026-04-15T00:00:00.000Z`)
+- Frontend must send date-only string `"YYYY-MM-DD"`; server normalizes to UTC midnight
+
+### Forbidden Patterns
+```js
+// WRONG: hardcoded city fallback
+const tz = template?.timezone ?? "Europe/Kyiv"
+
+// CORRECT: fallback chain
+const tz = template?.timezone ?? org?.timezone ?? "UTC"
+```
+
 ## Code Rules
 
 - `const` only, no `let`

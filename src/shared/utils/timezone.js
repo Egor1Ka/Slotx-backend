@@ -18,9 +18,27 @@ const getTimezoneOffsetMin = (date, timezone) => {
 // (the `Z` suffix, if present, is ignored) and returns a proper UTC Date.
 const parseWallClockToUtc = (isoString, timezone) => {
   if (!isoString || !timezone) return new Date(isoString);
-  const naive = new Date(isoString);
-  const offsetMin = getTimezoneOffsetMin(naive, timezone);
-  return new Date(naive.getTime() - offsetMin * 60000);
+  // Strip any trailing Z or offset — treat digits as wall-clock in `timezone`
+  const cleaned = isoString.replace(/[Zz]$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
+  const parts = cleaned.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!parts) return new Date(isoString);
+  const year = parseInt(parts[1], 10);
+  const month = parseInt(parts[2], 10) - 1;
+  const day = parseInt(parts[3], 10);
+  const hour = parseInt(parts[4], 10);
+  const minute = parseInt(parts[5], 10);
+  const second = parts[6] ? parseInt(parts[6], 10) : 0;
+  // Create a UTC date with the same digits as the wall-clock time
+  const naive = new Date(Date.UTC(year, month, day, hour, minute, second));
+  // First pass: compute offset at the naive UTC instant
+  const offset1 = getTimezoneOffsetMin(naive, timezone);
+  const candidate = new Date(naive.getTime() - offset1 * 60000);
+  // Second pass: verify offset at the candidate instant (DST safety)
+  const offset2 = getTimezoneOffsetMin(candidate, timezone);
+  if (offset1 !== offset2) {
+    return new Date(naive.getTime() - offset2 * 60000);
+  }
+  return candidate;
 };
 
 const isValidTimezone = (tz) => {
