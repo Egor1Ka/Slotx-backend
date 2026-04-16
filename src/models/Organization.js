@@ -84,6 +84,15 @@ const OrganizationSchema = new Schema(
        */
       hideBranding: { type: Boolean, default: false },
     },
+
+    /**
+     * Дефолтный статус для новых бронирований в организации.
+     */
+    defaultBookingStatusId: {
+      type: Schema.Types.ObjectId,
+      ref: "BookingStatus",
+      default: null,
+    },
   },
   { timestamps: true },
 );

@@ -12,6 +12,15 @@ const UserSchema = new Schema(
     phone:       { type: String, default: null },
     website:     { type: String, default: null },
     telegramChatId: { type: String, default: null },
+
+    /**
+     * Дефолтный статус для новых бронирований в персональном расписании.
+     */
+    defaultBookingStatusId: {
+      type: Schema.Types.ObjectId,
+      ref: "BookingStatus",
+      default: null,
+    },
   },
   { timestamps: true }
 );
