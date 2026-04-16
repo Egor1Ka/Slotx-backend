@@ -103,7 +103,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const bufferAfter = eventType.bufferAfter || 0;
 
   const { dateStart, dateEnd } = getDateRange(date, timezone);
-  const bookings = await findByStaffAndDate(staffId, dateStart, dateEnd);
+  const bookings = await findByStaffAndDate(staffId, dateStart, dateEnd, eventType.orgId || null);
 
   const toBooking = (b) => toBookingSlot(timezone, bufferAfter, b, dateStart, dateEnd);
   const bookingSlots = bookings.map(toBooking);
