@@ -21,19 +21,47 @@ import {
   sendBookingTelegramNotifications,
 } from "./notificationServices.js";
 import {
-  BOOKING_STATUS,
   PAYMENT_STATUS,
   HOST_ROLE,
   NOTIFICATION_TYPE,
 } from "../constants/booking.js";
+import {
+  BOOKING_STATUS_ACTIONS,
+} from "../constants/bookingStatus.js";
+import {
+  findByLabel,
+  getHiddenStatusIds,
+} from "../repository/bookingStatusRepository.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { bookingStatus } from "../shared/utils/http/httpStatus.js";
 import { parseWallClockToUtc, isValidTimezone, resolveScheduleTimezone, getOrgTimezone } from "../shared/utils/timezone.js";
+import Organization from "../models/Organization.js";
+import User from "../modules/user/model/User.js";
 
 const generateToken = () => crypto.randomBytes(32).toString("hex");
 
 const computePaymentStatus = (amount) =>
   amount > 0 ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.NONE;
+
+/**
+ * Получить defaultBookingStatusId для scope.
+ */
+const resolveDefaultStatusId = async (orgId, userId) => {
+  if (orgId) {
+    const org = await Organization.findById(orgId).select("defaultBookingStatusId");
+    return org ? org.defaultBookingStatusId : null;
+  }
+  const user = await User.findById(userId).select("defaultBookingStatusId");
+  return user ? user.defaultBookingStatusId : null;
+};
+
+/**
+ * Найти статус с действием hideFromSchedule (для отмены).
+ */
+const resolveCancelStatusId = async (orgId, userId) => {
+  const hiddenIds = await getHiddenStatusIds(orgId, orgId ? null : userId);
+  return hiddenIds.length > 0 ? hiddenIds[0] : null;
+};
 
 const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee, customFieldValues }) => {
   const eventType = await getEventTypeById(eventTypeId);
@@ -41,8 +69,6 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   const clientTimezone = isValidTimezone(timezone) ? timezone : null;
 
-  // Парсим wall-clock из запроса в tz расписания (именно в этой tz фронт
-  // отрисовывал сетку слотов — иначе бронь сдвинется относительно сетки).
   const template = await findActiveTemplate(staffId, eventType.orgId || null, null, new Date(startAt));
   if (!template) return { error: "template_not_found" };
   const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
@@ -56,7 +82,6 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   const inviteeDoc = await findOrCreateInvitee(invitee);
 
-  // Резолвим цену с учётом позиции сотрудника (если услуга принадлежит организации)
   const staffMembership = eventType.orgId
     ? await getMembershipByUserAndOrg(staffId, eventType.orgId)
     : null;
@@ -65,6 +90,12 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
 
   const amount = resolvedPrice ? resolvedPrice.amount : 0;
   const currency = resolvedPrice ? resolvedPrice.currency : "usd";
+
+  // Динамический дефолтный статус вместо хардкода
+  const defaultStatusId = await resolveDefaultStatusId(eventType.orgId, staffId);
+  if (!defaultStatusId) {
+    throw new HttpError(bookingStatus.SLOT_TAKEN);
+  }
 
   const bookingData = {
     eventTypeId,
@@ -75,7 +106,7 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
     startAt: startDate,
     endAt: endDate,
     timezone: clientTimezone,
-    status: amount > 0 ? BOOKING_STATUS.PENDING_PAYMENT : BOOKING_STATUS.CONFIRMED,
+    statusId: defaultStatusId,
     inviteeSnapshot: {
       name: invitee.name,
       email: invitee.email || null,
@@ -111,7 +142,13 @@ const cancelBookingById = async (id, reason) => {
   const booking = await findBookingById(id);
   if (!booking) return null;
 
-  const cancelled = await repoCancel(id, reason);
+  const orgId = booking.orgId;
+  const userId = booking.hosts[0].userId.toString();
+  const cancelStatusId = await resolveCancelStatusId(orgId, orgId ? null : userId);
+
+  if (!cancelStatusId) return null;
+
+  const cancelled = await repoCancel(id, reason, cancelStatusId);
   await skipNotifications(id);
   sendBookingTelegramNotifications(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
     console.error("Telegram notification error:", error.message),
@@ -123,7 +160,13 @@ const cancelBookingByToken = async (cancelToken, reason) => {
   const booking = await findBookingByToken(cancelToken);
   if (!booking) return null;
 
-  const cancelled = await repoCancel(booking._id, reason);
+  const orgId = booking.orgId;
+  const userId = booking.hosts[0].userId.toString();
+  const cancelStatusId = await resolveCancelStatusId(orgId, orgId ? null : userId);
+
+  if (!cancelStatusId) return null;
+
+  const cancelled = await repoCancel(booking._id, reason, cancelStatusId);
   await skipNotifications(booking._id);
   sendBookingTelegramNotifications(booking, NOTIFICATION_TYPE.BOOKING_CANCELLED).catch((error) =>
     console.error("Telegram notification error:", error.message),
@@ -137,27 +180,15 @@ const getBookingById = async (id) => {
   return toBookingDto(booking);
 };
 
-const STATUS_NOTIFICATION_MAP = {
-  [BOOKING_STATUS.CONFIRMED]: NOTIFICATION_TYPE.BOOKING_STATUS_CHANGED,
-  [BOOKING_STATUS.COMPLETED]: NOTIFICATION_TYPE.BOOKING_COMPLETED,
-  [BOOKING_STATUS.NO_SHOW]: NOTIFICATION_TYPE.BOOKING_NO_SHOW,
-  [BOOKING_STATUS.CANCELLED]: NOTIFICATION_TYPE.BOOKING_CANCELLED,
-};
-
-const getNotificationType = (status) => STATUS_NOTIFICATION_MAP[status] || null;
-
-const updateBookingStatus = async (id, status) => {
+const updateBookingStatus = async (id, statusId) => {
   const booking = await findBookingById(id);
   if (!booking) return null;
 
-  const result = await repoUpdateStatus(id, status);
+  const result = await repoUpdateStatus(id, statusId);
 
-  const notificationType = getNotificationType(status);
-  if (notificationType) {
-    sendBookingTelegramNotifications(booking, notificationType).catch((error) =>
-      console.error("Telegram notification error:", error.message),
-    );
-  }
+  sendBookingTelegramNotifications(booking, NOTIFICATION_TYPE.BOOKING_STATUS_CHANGED).catch((error) =>
+    console.error("Telegram notification error:", error.message),
+  );
 
   return result;
 };
@@ -172,7 +203,6 @@ const rescheduleBookingById = async (id, newStartAt) => {
 
   const staffId = booking.hosts[0].userId.toString();
 
-  // Парсим wall-clock в tz активного шаблона расписания, как и createBooking.
   const template = await findActiveTemplate(staffId, eventType.orgId || null, null, new Date(newStartAt));
   if (!template) return { error: "template_not_found" };
   const gridTimezone = await resolveScheduleTimezone(template, getOrgTimezone);
