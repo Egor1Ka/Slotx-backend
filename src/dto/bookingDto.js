@@ -24,6 +24,21 @@ const toCustomFieldValueDto = (entry) => ({
 const extractId = (field) =>
   field && field._id ? field._id.toString() : field.toString();
 
+const toStatusDto = (statusId) => {
+  // statusId может быть populated объектом или plain ObjectId
+  if (statusId && statusId._id) {
+    return {
+      id: statusId._id.toString(),
+      label: statusId.label,
+      color: statusId.color,
+      actions: statusId.actions,
+      isDefault: statusId.isDefault,
+    };
+  }
+  // Fallback: ещё не populated
+  return { id: statusId ? statusId.toString() : null };
+};
+
 const toBookingDto = (doc) => ({
   id: doc._id.toString(),
   eventTypeId: extractId(doc.eventTypeId),
@@ -34,7 +49,8 @@ const toBookingDto = (doc) => ({
   startAt: doc.startAt,
   endAt: doc.endAt,
   timezone: doc.timezone,
-  status: doc.status,
+  statusId: doc.statusId ? doc.statusId.toString() : null,
+  status: toStatusDto(doc.statusId),
   inviteeSnapshot: toInviteeSnapshotDto(doc.inviteeSnapshot),
   clientNotes: doc.clientNotes,
   customFieldValues: Array.isArray(doc.customFieldValues)
@@ -54,7 +70,8 @@ const toBookingCreatedDto = (doc, eventType) => ({
   endAt: doc.endAt,
   timezone: doc.timezone,
   locationId: doc.locationId ? doc.locationId.toString() : null,
-  status: doc.status,
+  statusId: doc.statusId ? doc.statusId.toString() : null,
+  status: toStatusDto(doc.statusId),
   cancelToken: doc.cancelToken,
   invitee: toInviteeSnapshotDto(doc.inviteeSnapshot),
   payment: toPaymentDto(doc.payment),
