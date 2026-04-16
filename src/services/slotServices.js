@@ -78,7 +78,7 @@ const getSlotsForDate = async ({ staffId, eventTypeId, date, locationId, slotMod
   const durationMin = eventType.durationMin;
   const minNotice = eventType.minNotice || 0;
 
-  const template = await findActiveTemplate(staffId, undefined, locationId || null, new Date(date));
+  const template = await findActiveTemplate(staffId, eventType.orgId || null, locationId || null, new Date(date));
   if (!template) return { error: "template_not_found" };
 
   const timezone = await resolveScheduleTimezone(template, getOrgTimezone);
