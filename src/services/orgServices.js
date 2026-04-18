@@ -7,23 +7,26 @@ import { toOrgStaffDto } from "../dto/staffDto.js";
 import { toOrgDto, toOrgListItemDto } from "../dto/orgDto.js";
 import { MEMBERSHIP_STATUS } from "../constants/booking.js";
 import { createDefaultSchedule } from "./scheduleServices.js";
+import { seedDefaultStatuses } from "./bookingStatusServices.js";
 import Organization from "../models/Organization.js";
 import Membership from "../models/Membership.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { getUserBillingProfile } from "../modules/billing/services/planServices.js";
+import { parseWallClockToUtc, isValidTimezone } from "../shared/utils/timezone.js";
 
 const getOrganizationById = async (id) => {
   return getOrgById(id);
 };
 
-const getDateRange = (dateStr) => {
-  const date = dateStr ? new Date(dateStr) : new Date();
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
+const getDayRange = (dateStr, timezone) => {
+  if (!timezone) throw new Error("timezone_required");
+  const isoStart = `${dateStr}T00:00:00.000Z`;
+  const isoEnd = `${dateStr}T23:59:59.999Z`;
+  return {
+    start: parseWallClockToUtc(isoStart, timezone),
+    end: parseWallClockToUtc(isoEnd, timezone),
+  };
 };
 
 const buildMemberProfile = async (member, dateRange) => {
@@ -45,12 +48,23 @@ const buildMemberProfile = async (member, dateRange) => {
 
 const isNotNull = (item) => item !== null;
 
+const toLocalDateStr = (date) => {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 const getOrgStaff = async (id, dateStr) => {
   const org = await getOrgById(id);
   if (!org) return { error: "org_not_found" };
 
+  if (!org.timezone) throw new Error("org_timezone_required");
+  const timezone = org.timezone;
+  const resolvedDateStr = dateStr || toLocalDateStr(new Date());
+
   const members = await getActiveAndInvitedMembersByOrg(org.id);
-  const dateRange = getDateRange(dateStr);
+  const dateRange = getDayRange(resolvedDateStr, timezone);
 
   const toBuildProfile = (dateRange) => (member) => buildMemberProfile(member, dateRange);
   const profiles = await Promise.all(members.map(toBuildProfile(dateRange)));
@@ -59,6 +73,10 @@ const getOrgStaff = async (id, dateStr) => {
 };
 
 const createOrganization = async (data, userId) => {
+  if (!data.timezone || !isValidTimezone(data.timezone)) {
+    throw new Error("timezone_required");
+  }
+
   const plan = await getUserBillingProfile(userId);
   const orgLimit = plan.limits.organizations || 0;
 
@@ -73,9 +91,9 @@ const createOrganization = async (data, userId) => {
 
   const orgData = {
     name: data.name,
+    timezone: data.timezone,
     currency: data.currency || "UAH",
     settings: {
-      defaultTimezone: data.defaultTimezone || "Europe/Kyiv",
       defaultCountry: data.defaultCountry || "UA",
       brandColor: data.brandColor || undefined,
       logoUrl: data.logoUrl || undefined,
@@ -93,6 +111,9 @@ const createOrganization = async (data, userId) => {
 
   await createDefaultSchedule(userId, org.id).catch((err) =>
     console.error("[createDefaultSchedule] org creation failed:", err.message),
+  );
+  await seedDefaultStatuses(org.id, null).catch((err) =>
+    console.error("[seedDefaultStatuses] org creation failed:", err.message),
   );
 
   return org;
@@ -204,4 +225,4 @@ const getMyMembership = async (orgId, userId) => {
   return { role: membership.role, status: membership.status };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };

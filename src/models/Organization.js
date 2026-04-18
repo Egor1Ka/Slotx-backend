@@ -2,12 +2,35 @@ import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
+const isValidIanaTimezone = (v) => {
+  try {
+    return !!v && Intl.supportedValuesOf("timeZone").includes(v);
+  } catch {
+    return false;
+  }
+};
+
 const OrganizationSchema = new Schema(
   {
     /**
      * Отображаемое название организации.
      */
     name: { type: String, required: true },
+
+    /**
+     * IANA timezone ("Europe/Kyiv").
+     * Обязательное поле на уровне организации — дефолт для новых сотрудников
+     * и для движка слотов когда у специалиста нет своего шаблона расписания.
+     * Задаётся при создании орги, не имеет server-side fallback.
+     */
+    timezone: {
+      type: String,
+      required: true,
+      validate: {
+        validator: isValidIanaTimezone,
+        message: "Invalid IANA timezone",
+      },
+    },
 
     /**
      * Валюта организации.
@@ -41,13 +64,6 @@ const OrganizationSchema = new Schema(
 
     settings: {
       /**
-       * IANA timezone ("Europe/Kyiv").
-       * Дефолт для новых сотрудников и для движка слотов
-       * когда у специалиста нет своего шаблона расписания.
-       */
-      defaultTimezone: { type: String, default: "Europe/Kyiv" },
-
-      /**
        * ISO 3166-1 ("UA").
        * Дефолтный код страны в телефонном инпуте на странице записи клиента.
        */
@@ -67,6 +83,15 @@ const OrganizationSchema = new Schema(
        * Скрыть "Powered by Slotix" на публичной странице.
        */
       hideBranding: { type: Boolean, default: false },
+    },
+
+    /**
+     * Дефолтный статус для новых бронирований в организации.
+     */
+    defaultBookingStatusId: {
+      type: Schema.Types.ObjectId,
+      ref: "BookingStatus",
+      default: null,
     },
   },
   { timestamps: true },

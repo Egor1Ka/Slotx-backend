@@ -28,7 +28,7 @@ const upsertOverride = async (data) => {
 
 const findOverridesByStaff = async (staffId, orgId) => {
   const filter = { staffId };
-  if (orgId) filter.orgId = orgId;
+  if (orgId !== undefined) filter.orgId = orgId;
   const docs = await ScheduleOverride.find(filter).sort({ date: 1 });
   return docs.map(toScheduleOverrideDto);
 };

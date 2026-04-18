@@ -3,6 +3,7 @@ export const generalStatus = {
   CREATED: { status: 201, message: "created" },
   BAD_REQUEST: { status: 400, message: "badRequest" },
   UNAUTHORIZED: { status: 401, message: "unauthorized" },
+  FORBIDDEN: { status: 403, message: "forbidden" },
   NOT_FOUND: { status: 404, message: "notFound" },
   ERROR: { status: 500, message: "serverError" },
 };

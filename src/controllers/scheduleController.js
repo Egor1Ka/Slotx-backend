@@ -3,6 +3,9 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { isValidTimezone } from "../shared/utils/timezone.js";
+import { requireOrgAdmin } from "../shared/utils/orgAuth.js";
+import ScheduleOverride from "../models/ScheduleOverride.js";
 
 const handleGetTemplate = async (req, res) => {
   try {
@@ -11,10 +14,7 @@ const handleGetTemplate = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const template = await getActiveTemplate(staffId, orgId, locationId, today);
+    const template = await getActiveTemplate(staffId, orgId, locationId, new Date());
     if (!template) return httpResponse(res, generalStatus.NOT_FOUND);
 
     return httpResponse(res, generalStatus.SUCCESS, template);
@@ -39,6 +39,7 @@ const putTemplateSchema = {
   weeklyHours: { type: "array", required: true, items: { type: "object", properties: weeklyHourItemSchema } },
   slotMode: { type: "string", required: false },
   slotStepMin: { type: "number", required: false },
+  timezone: { type: "string", required: false },
 };
 
 const handlePutTemplate = async (req, res) => {
@@ -46,6 +47,21 @@ const handlePutTemplate = async (req, res) => {
     const validated = validateSchema(putTemplateSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    const { staffId, orgId } = req.body;
+    if (!orgId && !req.body.timezone) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "required for personal schedules" } });
+    }
+    if (req.body.timezone && !isValidTimezone(req.body.timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
+    }
+
+    const callerId = req.user.id;
+    if (orgId && callerId !== staffId) {
+      await requireOrgAdmin(callerId, orgId);
+    } else if (!orgId && callerId !== staffId) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const template = await rotateTemplate(req.body);
@@ -66,6 +82,14 @@ const handlePostOverride = async (req, res) => {
     const validated = validateSchema(overrideSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+
+    const callerId = req.user.id;
+    const { staffId, orgId } = req.body;
+    if (orgId && callerId !== staffId) {
+      await requireOrgAdmin(callerId, orgId);
+    } else if (!orgId && callerId !== staffId) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const override = await upsertScheduleOverride(req.body);
@@ -95,7 +119,7 @@ const handleGetOverrides = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const overrides = await getOverridesByStaff(staffId, orgId);
+    const overrides = await getOverridesByStaff(staffId, orgId ? orgId : null);
     return httpResponse(res, generalStatus.SUCCESS, overrides);
   } catch (error) {
     return httpResponseError(res, error);
@@ -107,6 +131,16 @@ const handleDeleteOverride = async (req, res) => {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const existing = await ScheduleOverride.findById(id);
+    if (!existing) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    const callerId = req.user.id;
+    if (existing.orgId) {
+      await requireOrgAdmin(callerId, existing.orgId);
+    } else if (String(existing.staffId) !== String(callerId)) {
+      return httpResponse(res, generalStatus.FORBIDDEN);
     }
 
     const deleted = await deleteOverride(id);

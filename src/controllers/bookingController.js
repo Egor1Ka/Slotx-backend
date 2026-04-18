@@ -12,6 +12,8 @@ import { httpResponse, httpResponseError } from "../shared/utils/http/httpRespon
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
+import { isValidTimezone, parseWallClockToUtc } from "../shared/utils/timezone.js";
+import { resolveStaffTimezone } from "../services/scheduleServices.js";
 
 const createBookingSchema = {
   eventTypeId: { type: "string", required: true },
@@ -52,6 +54,9 @@ const handleCreateBooking = async (req, res) => {
     if (result.error === "eventType_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
+    if (result.error === "template_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
     const dto = toBookingCreatedDto(result.raw, result.eventType);
     return httpResponse(res, generalStatus.CREATED, dto);
   } catch (error) {
@@ -70,17 +75,26 @@ const handleGetBookingsByStaff = async (req, res) => {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
+    const timezone = await resolveStaffTimezone({
+      staffId,
+      orgId: orgId || null,
+      locationId: locationId || null,
+    });
+    if (!timezone || !isValidTimezone(timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "not_configured_for_staff" } });
+    }
+
     const statuses = status ? status.split(",") : undefined;
 
-    const endOfDay = new Date(dateTo);
-    endOfDay.setHours(23, 59, 59, 999);
+    const dateFromUtc = parseWallClockToUtc(`${dateFrom}T00:00:00`, timezone);
+    const dateToUtc = parseWallClockToUtc(`${dateTo}T23:59:59.999`, timezone);
 
     const bookings = await getBookingsByStaff({
       staffId,
-      dateFrom: new Date(dateFrom),
-      dateTo: endOfDay,
+      dateFrom: dateFromUtc,
+      dateTo: dateToUtc,
       locationId: locationId || undefined,
-      orgId: orgId || undefined,
+      orgId: orgId ? orgId : null,
       statuses,
     });
 
@@ -140,28 +154,27 @@ const handleGetBookingById = async (req, res) => {
   }
 };
 
-const ALLOWED_STATUS_TRANSITIONS = {
-  pending_payment: ["confirmed", "cancelled"],
-  confirmed: ["completed", "no_show", "cancelled"],
-};
-
 const handleUpdateStatus = async (req, res) => {
   try {
     if (!isValidObjectId(req.params.id)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
-    const { status } = req.body;
-    if (!status) return httpResponse(res, generalStatus.BAD_REQUEST);
+    const { statusId } = req.body;
+    if (!statusId || !isValidObjectId(statusId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
 
     const existing = await getBookingById(req.params.id);
     if (!existing) return httpResponse(res, generalStatus.NOT_FOUND);
 
-    const allowed = ALLOWED_STATUS_TRANSITIONS[existing.status];
-    if (!allowed || !allowed.includes(status)) {
+    // Свободные переходы — валидируем только что statusId существует и не архивирован
+    const { findById } = await import("../repository/bookingStatusRepository.js");
+    const targetStatus = await findById(statusId);
+    if (!targetStatus || targetStatus.isArchived) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
     }
 
-    const updated = await updateBookingStatusService(req.params.id, status);
+    const updated = await updateBookingStatusService(req.params.id, statusId);
     return httpResponse(res, generalStatus.SUCCESS, updated);
   } catch (error) {
     return httpResponseError(res, error);
@@ -181,6 +194,9 @@ const handleReschedule = async (req, res) => {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
     if (result && result.error === "eventType_not_found") {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+    if (result && result.error === "template_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
     return httpResponse(res, generalStatus.SUCCESS, result);

@@ -19,8 +19,8 @@ const DB_URI = "mongodb://localhost:27017/myDatabase";
 
 const buildOrganizationData = () => ({
   name: "Барбершоп Чемпіон",
+  timezone: "Europe/Kyiv",
   settings: {
-    defaultTimezone: "Europe/Kyiv",
     defaultCountry: "UA",
     brandColor: "#1a1a2e",
   },
@@ -289,7 +289,7 @@ const makeToday = () => {
 
 const makeTomorrow = (today) => {
   const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 1); // tz-ok: seed script, UTC-midnight Date advanced by 1 day for test fixture only
   return tomorrow;
 };
 

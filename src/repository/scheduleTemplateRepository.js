@@ -30,7 +30,7 @@ const findCurrentTemplate = async (staffId, orgId, locationId) => {
 
 const createTemplate = async (data) => {
   const doc = await ScheduleTemplate.create(data);
-  return toScheduleTemplateDto(doc);
+  return await toScheduleTemplateDto(doc);
 };
 
 const updateTemplateValidTo = async (id, validTo) => {
@@ -45,7 +45,7 @@ const updateTemplateValidTo = async (id, validTo) => {
 const findActiveTemplateDto = async (staffId, orgId, locationId, date) => {
   const doc = await findActiveTemplate(staffId, orgId, locationId, date);
   if (!doc) return null;
-  return toScheduleTemplateDto(doc);
+  return await toScheduleTemplateDto(doc);
 };
 
 const findActiveTemplatesByOrg = async (orgId, date) => {
@@ -59,7 +59,7 @@ const findActiveTemplatesByOrg = async (orgId, date) => {
     $or: [{ validTo: null }, { validTo: { $gte: date } }],
   }).lean()
 
-  return templates.map(toScheduleTemplateDto)
+  return Promise.all(templates.map(toScheduleTemplateDto))
 }
 
 export {

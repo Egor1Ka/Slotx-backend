@@ -10,6 +10,8 @@ import {
 import { parseDurationMs } from "../../../shared/utils/duration.js";
 import { REFRESH_BYTES, STATE_BYTES } from "../constants/auth.js";
 import { createDefaultSchedule } from "../../../services/scheduleServices.js";
+import { isValidTimezone } from "../../../shared/utils/timezone.js";
+import { seedDefaultStatuses } from "../../../services/bookingStatusServices.js";
 
 const { JWT_SECRET, JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES } = process.env;
 
@@ -31,7 +33,21 @@ const verifyAccessToken = (token) => {
 
 // ── OAuth state ───────────────────────────────────────────────────────────────
 
-const createOauthState = () => crypto.randomBytes(STATE_BYTES).toString("hex");
+const createOauthState = (timezone) => {
+  if (!timezone || !isValidTimezone(timezone)) throw new Error("invalid_timezone");
+  const state = crypto.randomBytes(STATE_BYTES).toString("base64url");
+  const payload = JSON.stringify({ s: state, tz: timezone });
+  const cookieValue = Buffer.from(payload).toString("base64url");
+  return { state, cookieValue };
+};
+
+const validateOauthState = (cookieValue, receivedState) => {
+  if (!cookieValue || !receivedState) throw new Error("missing_state");
+  const raw = Buffer.from(cookieValue, "base64url").toString("utf8");
+  const parsed = JSON.parse(raw);
+  if (parsed.s !== receivedState) throw new Error("invalid_state");
+  return { timezone: parsed.tz };
+};
 
 // ── User ──────────────────────────────────────────────────────────────────────
 
@@ -41,7 +57,7 @@ const buildNormalizedUser = (profile) => ({
   avatar: profile.avatar,
 });
 
-const findOrCreateUser = async (profile) => {
+const findOrCreateUser = async (profile, timezone) => {
   const existing = await getUser({ email: profile.email });
 
   if (existing) {
@@ -55,9 +71,16 @@ const findOrCreateUser = async (profile) => {
 
   const newUser = await createUserRecord(buildNormalizedUser(profile));
 
-  await createDefaultSchedule(newUser.id).catch((err) =>
-    console.error("[createDefaultSchedule] registration failed:", err.message),
+  if (!timezone || !isValidTimezone(timezone)) throw new Error("timezone_required");
+  console.log("[registration] new user created:", newUser.id, "timezone:", timezone);
+  await createDefaultSchedule(newUser.id, null, timezone).catch((err) =>
+    console.error("[createDefaultSchedule] registration failed:", err.message, err.stack),
   );
+  console.log("[registration] createDefaultSchedule done for user:", newUser.id);
+  await seedDefaultStatuses(null, newUser.id).catch((err) =>
+    console.error("[seedDefaultStatuses] registration failed:", err.message, err.stack),
+  );
+  console.log("[registration] seedDefaultStatuses done for user:", newUser.id);
 
   return newUser;
 };
@@ -130,6 +153,7 @@ export {
   createAccessToken,
   verifyAccessToken,
   createOauthState,
+  validateOauthState,
   findOrCreateUser,
   buildAccessTokenPayload,
   createSession,

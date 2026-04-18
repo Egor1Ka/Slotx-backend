@@ -1,13 +1,3 @@
-const BOOKING_STATUS = {
-  PENDING_PAYMENT: "pending_payment",
-  CONFIRMED: "confirmed",
-  CANCELLED: "cancelled",
-  NO_SHOW: "no_show",
-  COMPLETED: "completed",
-};
-
-const BOOKING_STATUSES = Object.values(BOOKING_STATUS);
-
 const PAYMENT_STATUS = {
   NONE: "none",
   PENDING: "pending",
@@ -25,11 +15,6 @@ const SLOT_MODE = {
 };
 
 const SLOT_MODES = Object.values(SLOT_MODE);
-
-const ACTIVE_BOOKING_STATUSES = [
-  BOOKING_STATUS.CONFIRMED,
-  BOOKING_STATUS.PENDING_PAYMENT,
-];
 
 const NOTIFICATION_TYPE = {
   BOOKING_CONFIRMED: "booking_confirmed",
@@ -70,13 +55,10 @@ const HOST_ROLE = {
 };
 
 export {
-  BOOKING_STATUS,
-  BOOKING_STATUSES,
   PAYMENT_STATUS,
   PAYMENT_STATUSES,
   SLOT_MODE,
   SLOT_MODES,
-  ACTIVE_BOOKING_STATUSES,
   NOTIFICATION_TYPE,
   NOTIFICATION_STATUS,
   NOTIFICATION_CHANNEL,

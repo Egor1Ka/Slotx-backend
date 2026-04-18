@@ -5,15 +5,6 @@ const { Schema, model } = mongoose;
 /** Роли специалистов на встрече */
 const HOST_ROLES = ["lead", "assistant", "observer"];
 
-/** Машина состояний бронирования */
-const BOOKING_STATUSES = [
-  "pending_payment",
-  "confirmed",
-  "cancelled",
-  "no_show",
-  "completed",
-];
-
 /** Статусы оплаты */
 const PAYMENT_STATUSES = ["none", "pending", "paid", "refunded", "failed"];
 
@@ -119,14 +110,13 @@ const BookingSchema = new Schema(
     timezone: { type: String },
 
     /**
-     * Машина состояний:
-     * pending_payment → confirmed (оплачено или бесплатно)
-     * confirmed → cancelled | no_show | completed
+     * Динамический статус бронирования.
+     * Ссылка на BookingStatus collection.
      */
-    status: {
-      type: String,
-      enum: BOOKING_STATUSES,
-      default: "confirmed",
+    statusId: {
+      type: Schema.Types.ObjectId,
+      ref: "BookingStatus",
+      required: true,
     },
 
     /**
@@ -198,23 +188,15 @@ const BookingSchema = new Schema(
 BookingSchema.index({ "hosts.userId": 1, startAt: 1, endAt: 1 });
 
 /** Журнал мастера */
-BookingSchema.index({ "hosts.userId": 1, status: 1, startAt: 1 });
+BookingSchema.index({ "hosts.userId": 1, statusId: 1, startAt: 1 });
 
 /** История клиента */
 BookingSchema.index({ inviteeId: 1, startAt: -1 });
 
 /** Аналитика организации */
-BookingSchema.index({ orgId: 1, status: 1, startAt: 1 });
+BookingSchema.index({ orgId: 1, statusId: 1, startAt: 1 });
 
 /** Загруженность точки */
-BookingSchema.index({ locationId: 1, status: 1, startAt: 1 });
-
-/**
- * Partial index: только confirmed брони для быстрой проверки коллизий.
- */
-BookingSchema.index(
-  { "hosts.userId": 1, startAt: 1 },
-  { partialFilterExpression: { status: "confirmed" } },
-);
+BookingSchema.index({ locationId: 1, statusId: 1, startAt: 1 });
 
 export default model("Booking", BookingSchema);

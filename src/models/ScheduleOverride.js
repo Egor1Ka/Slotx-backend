@@ -16,6 +16,14 @@ const TimeSlotSchema = new Schema(
   { _id: false },
 );
 
+/**
+ * Переопределение графика на конкретную дату.
+ *
+ * ВАЖНО: `slots[].start` / `slots[].end` — HH:MM в timezone активного
+ * ScheduleTemplate этого staff/org/location на момент чтения.
+ * Override не хранит свой timezone — если tz шаблона меняется,
+ * интерпретация override'ов меняется тоже.
+ */
 const ScheduleOverrideSchema = new Schema(
   {
     /**

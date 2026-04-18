@@ -96,12 +96,11 @@ const ScheduleTemplateSchema = new Schema(
     validTo: { type: Date, default: null },
 
     /**
-     * IANA timezone специалиста для ЭТОЙ точки/орг.
-     * Хранится здесь (не в users) — специалист может работать
-     * в Киеве и Берлине с разными timezone.
-     * Все HH:MM в weeklyHours интерпретируются в этой timezone.
+     * IANA timezone для ЛИЧНОГО расписания (orgId === null).
+     * Для орг-расписаний timezone берётся из Organization.timezone.
+     * Все HH:MM в weeklyHours интерпретируются в resolved timezone.
      */
-    timezone: { type: String, required: true },
+    timezone: { type: String, required: false, default: null },
 
     /**
      * Алгоритм построения сетки слотов:

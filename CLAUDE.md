@@ -219,6 +219,46 @@ generalStatus.NOT_FOUND     // 404
 generalStatus.ERROR         // 500
 ```
 
+## Timezone Contract
+
+### Storage
+- All `Date` fields in MongoDB are **UTC**
+- Timezone strings: IANA identifiers (`"Europe/Kyiv"`, `"America/New_York"`)
+
+### Timezone Priority
+1. **Org schedule** → `Organization.timezone` (single source, `ScheduleTemplate.timezone` is `null`)
+2. **Personal schedule** → `ScheduleTemplate.timezone`
+3. **Fallback** → `"UTC"` (never hardcode a specific city)
+
+`ScheduleTemplate.timezone` exists ONLY for personal schedules (`orgId === null`).
+For org schedules, the field is absent — timezone is resolved from `Organization`.
+
+### Resolver
+All services use `resolveScheduleTimezone(template, getOrgTimezone)` from `src/shared/utils/timezone.js`.
+Never read `template.timezone` directly — always go through the resolver.
+
+### Parsing Input
+- Frontend sends `startAt` as naive wall-clock: `"2026-04-15T14:00:00"` (no `Z`, no offset)
+- Backend resolves timezone via `resolveScheduleTimezone()` and calls `parseWallClockToUtc(startAt, resolvedTimezone)`
+- `parseWallClockToUtc` uses double-conversion to handle DST transitions safely
+
+### Notification Timezone Resolution
+- Telegram/email: resolve timezone via fallback chain `template.timezone → org.timezone → "UTC"`
+- Never hardcode `"Europe/Kyiv"` or any specific city as fallback
+
+### Override Dates
+- Override `date` field stored as `Date` at UTC midnight (`2026-04-15T00:00:00.000Z`)
+- Frontend must send date-only string `"YYYY-MM-DD"`; server normalizes to UTC midnight
+
+### Forbidden Patterns
+```js
+// WRONG: hardcoded city fallback
+const tz = template?.timezone ?? "Europe/Kyiv"
+
+// CORRECT: fallback chain
+const tz = template?.timezone ?? org?.timezone ?? "UTC"
+```
+
 ## Code Rules
 
 - `const` only, no `let`
