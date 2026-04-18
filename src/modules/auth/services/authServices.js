@@ -72,12 +72,15 @@ const findOrCreateUser = async (profile, timezone) => {
   const newUser = await createUserRecord(buildNormalizedUser(profile));
 
   if (!timezone || !isValidTimezone(timezone)) throw new Error("timezone_required");
+  console.log("[registration] new user created:", newUser.id, "timezone:", timezone);
   await createDefaultSchedule(newUser.id, null, timezone).catch((err) =>
-    console.error("[createDefaultSchedule] registration failed:", err.message),
+    console.error("[createDefaultSchedule] registration failed:", err.message, err.stack),
   );
+  console.log("[registration] createDefaultSchedule done for user:", newUser.id);
   await seedDefaultStatuses(null, newUser.id).catch((err) =>
-    console.error("[seedDefaultStatuses] registration failed:", err.message),
+    console.error("[seedDefaultStatuses] registration failed:", err.message, err.stack),
   );
+  console.log("[registration] seedDefaultStatuses done for user:", newUser.id);
 
   return newUser;
 };

@@ -12,7 +12,7 @@ import { isValidObjectId } from "../shared/utils/validation/validators.js";
 const handleGetStatuses = async (req, res) => {
   try {
     const { orgId } = req.query;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const statuses = orgId
       ? await getStatusesByScope(orgId, null)
@@ -27,7 +27,7 @@ const handleGetStatuses = async (req, res) => {
 const handleCreateStatus = async (req, res) => {
   try {
     const { label, color, actions, orgId } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const status = await createCustomStatus({
       label,

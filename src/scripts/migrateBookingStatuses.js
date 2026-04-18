@@ -9,16 +9,13 @@
 // Запуск: node src/scripts/migrateBookingStatuses.js
 
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
-
 import User from "../modules/user/model/User.js";
 import Organization from "../models/Organization.js";
 import Booking from "../models/Booking.js";
 import BookingStatus from "../models/BookingStatus.js";
 import { DEFAULT_STATUSES } from "../constants/bookingStatus.js";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/slotix";
+const DB_URL = process.env.DB_URL || "mongodb://localhost:27017/myDatabase";
 
 const run = async () => {
   await mongoose.connect(MONGO_URI);

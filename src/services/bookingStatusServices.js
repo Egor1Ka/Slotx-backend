@@ -23,7 +23,9 @@ import User from "../modules/user/model/User.js";
  * Устанавливает defaultBookingStatusId на status_unconfirmed.
  */
 const seedDefaultStatuses = async (orgId, userId = null) => {
+  console.log("[seedDefaultStatuses] called with orgId:", orgId, "userId:", userId);
   const existing = await countByScope(orgId, userId);
+  console.log("[seedDefaultStatuses] existing count:", existing);
   if (existing > 0) return [];
 
   const toStatusData = (template) => ({
@@ -32,10 +34,13 @@ const seedDefaultStatuses = async (orgId, userId = null) => {
     userId: orgId ? null : userId,
   });
   const statusDataArray = DEFAULT_STATUSES.map(toStatusData);
+  console.log("[seedDefaultStatuses] inserting", statusDataArray.length, "statuses");
   const created = await createManyStatuses(statusDataArray);
+  console.log("[seedDefaultStatuses] created", created.length, "statuses");
 
   // Установить defaultBookingStatusId = status_unconfirmed
   const unconfirmed = created.find((s) => s.label === "status_unconfirmed");
+  console.log("[seedDefaultStatuses] unconfirmed status:", unconfirmed ? unconfirmed.id : "NOT FOUND");
   if (unconfirmed) {
     if (orgId) {
       await Organization.findByIdAndUpdate(orgId, {
@@ -46,6 +51,7 @@ const seedDefaultStatuses = async (orgId, userId = null) => {
         defaultBookingStatusId: unconfirmed.id,
       });
     }
+    console.log("[seedDefaultStatuses] defaultBookingStatusId set");
   }
 
   return created;
