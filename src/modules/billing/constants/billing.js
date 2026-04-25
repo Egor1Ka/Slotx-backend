@@ -43,7 +43,7 @@ export const PLAN_CATALOG = {
     productId: null,
   },
   org_creator: {
-    price: 200,
+    price: 499,
     currency: "USD",
     period: "month",
     productId: process.env.CREEM_PRODUCT_ORG_CREATOR,

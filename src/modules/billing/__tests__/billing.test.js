@@ -54,7 +54,7 @@ describe("Billing webhooks", () => {
       const payment = await Payment.findOne({ eventType: "checkout.completed" });
       assert.ok(payment, "Payment should exist in DB");
       assert.equal(payment.type, "subscription");
-      assert.equal(payment.amount, 200);
+      assert.equal(payment.amount, 499);
       assert.equal(payment.currency, "USD");
     });
 
@@ -130,7 +130,7 @@ describe("Billing webhooks", () => {
 
       const payment = await Payment.findOne({ eventType: "subscription.paid" });
       assert.ok(payment, "Renewal payment should exist in DB");
-      assert.equal(payment.amount, 200);
+      assert.equal(payment.amount, 499);
       assert.equal(payment.currency, "USD");
     });
   });

@@ -38,7 +38,7 @@ const createActiveSubscription = async (userId, overrides = {}) => {
 
 const buildCheckoutPayload = (overrides = {}) => {
   const defaults = {
-    order: { id: TEST_ORDER_ID, amount: 200, currency: "USD" },
+    order: { id: TEST_ORDER_ID, amount: 499, currency: "USD" },
     subscription: { id: TEST_SUBSCRIPTION_ID },
     customer: { id: TEST_CUSTOMER_ID, email: TEST_EMAIL },
     product: { id: TEST_PRODUCT_ORG_CREATOR },
@@ -64,7 +64,7 @@ const buildRenewalPayload = (overrides = {}) => ({
   ...buildSubscriptionEventPayload(overrides),
   last_transaction: {
     order: "ord_renewal_001",
-    amount: 200,
+    amount: 499,
     currency: "USD",
     ...(overrides.last_transaction || {}),
   },
