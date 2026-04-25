@@ -2,7 +2,8 @@ const toString = (id) => id.toString();
 
 const toStaffDto = (user, position, membership) => ({
   id: user.id,
-  name: user.name,
+  name: (membership && membership.displayName) || user.name,
+  displayName: membership ? membership.displayName || null : null,
   avatar: user.avatar,
   position: position ? position.name : null,
   bio: membership ? membership.bio || null : null,
@@ -12,7 +13,8 @@ const toStaffDto = (user, position, membership) => ({
 
 const toOrgStaffDto = (user, position, bookingCount, status, membership) => ({
   id: user.id,
-  name: user.name,
+  name: (membership && membership.displayName) || user.name,
+  displayName: membership ? membership.displayName || null : null,
   avatar: user.avatar,
   position: position ? position.name : null,
   positionId: membership && membership.positionId ? membership.positionId.toString() : null,

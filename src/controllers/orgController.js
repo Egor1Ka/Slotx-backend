@@ -1,4 +1,4 @@
-import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffMember, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
@@ -24,8 +24,9 @@ const updateOrgSchema = {
   brandColor: { type: "string", required: false },
 };
 
-const updateStaffBioSchema = {
+const updateStaffMemberSchema = {
   bio: { type: "string", required: false },
+  displayName: { type: "string", required: false },
 };
 
 const handleGetOrg = async (req, res) => {
@@ -91,7 +92,7 @@ const handleUpdateOrg = async (req, res) => {
   }
 };
 
-const handleUpdateStaffBio = async (req, res) => {
+const handleUpdateStaffMember = async (req, res) => {
   try {
     if (!isValidObjectId(req.params.id) || !isValidObjectId(req.params.staffId)) {
       return httpResponse(res, generalStatus.BAD_REQUEST);
@@ -101,12 +102,28 @@ const handleUpdateStaffBio = async (req, res) => {
       return httpResponse(res, generalStatus.UNAUTHORIZED);
     }
 
-    const validated = validateSchema(updateStaffBioSchema, req.body);
+    const validated = validateSchema(updateStaffMemberSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
     }
 
-    const result = await updateStaffBio(req.params.id, req.params.staffId, validated.bio);
+    const displayName = validated.displayName;
+    if (displayName !== undefined && displayName !== null && displayName !== "" && displayName.trim().length < 2) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: { displayName: "displayName - must be at least 2 characters or empty" },
+      });
+    }
+    if (displayName !== undefined && displayName !== null && displayName.length > 100) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, {
+        errors: { displayName: "displayName - must be at most 100 characters" },
+      });
+    }
+
+    const updates = {};
+    if (validated.bio !== undefined) updates.bio = validated.bio;
+    if (validated.displayName !== undefined) updates.displayName = validated.displayName;
+
+    const result = await updateStaffMember(req.params.id, req.params.staffId, updates);
     return httpResponse(res, generalStatus.SUCCESS, result);
   } catch (error) {
     return httpResponseError(res, error);
@@ -211,4 +228,4 @@ const handleGetMyMembership = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffBio, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffMember, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };

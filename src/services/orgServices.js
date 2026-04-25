@@ -142,10 +142,23 @@ const updateOrganization = async (orgId, data) => {
   return toOrgDto(org);
 };
 
-const updateStaffBio = async (orgId, staffId, bio) => {
+const updateStaffMember = async (orgId, staffId, updates) => {
+  const changes = {};
+  if (updates.bio !== undefined) {
+    changes.bio = updates.bio && updates.bio.trim() ? updates.bio.trim() : null;
+  }
+  if (updates.displayName !== undefined) {
+    const dn = updates.displayName && updates.displayName.trim();
+    changes.displayName = dn ? dn : null;
+  }
+
+  if (Object.keys(changes).length === 0) {
+    throw new HttpError(generalStatus.BAD_REQUEST);
+  }
+
   const membership = await Membership.findOneAndUpdate(
     { userId: staffId, orgId, status: "active" },
-    { bio: bio !== undefined ? bio : null },
+    changes,
     { new: true },
   );
 
@@ -153,7 +166,10 @@ const updateStaffBio = async (orgId, staffId, bio) => {
     throw new HttpError(generalStatus.NOT_FOUND);
   }
 
-  return { bio: membership.bio || null };
+  return {
+    bio: membership.bio || null,
+    displayName: membership.displayName || null,
+  };
 };
 
 const updateStaffPosition = async (orgId, staffId, positionId) => {
@@ -222,7 +238,19 @@ const declineInvitation = async (orgId, userId) => {
 const getMyMembership = async (orgId, userId) => {
   const membership = await getMembershipByUserAndOrg(userId, orgId);
   if (!membership) return null;
-  return { role: membership.role, status: membership.status };
+
+  const position = membership.positionId
+    ? await getPositionById(membership.positionId)
+    : null;
+
+  return {
+    role: membership.role,
+    status: membership.status,
+    displayName: membership.displayName || null,
+    bio: membership.bio || null,
+    positionId: membership.positionId ? membership.positionId.toString() : null,
+    position: position ? position.name : null,
+  };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffBio, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffMember, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };

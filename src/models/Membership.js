@@ -79,6 +79,17 @@ const MembershipSchema = new Schema(
      * Краткое описание сотрудника в этой организации.
      */
     bio: { type: String, default: null },
+
+    /**
+     * Имя сотрудника внутри этой организации.
+     * Если null — используется User.name (глобальное имя).
+     * Max 100 символов.
+     */
+    displayName: {
+      type: String,
+      default: null,
+      maxlength: 100,
+    },
   },
   { timestamps: true },
 );
