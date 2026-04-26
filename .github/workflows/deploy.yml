@@ -65,12 +65,12 @@ jobs:
             cat > /opt/slotix/.env.api <<EOF
             PORT=9000
             API_PREFIX=api
-            FRONTEND_URL=http://213.136.67.77
-            COOKIE_DOMAIN=
+            FRONTEND_URL=https://slotixs.uk
+            COOKIE_DOMAIN=slotixs.uk
             JWT_ACCESS_EXPIRES=30d
             JWT_REFRESH_EXPIRES=90d
             CREEM_TEST_MODE=true
-            GOOGLE_REDIRECT_URI=http://213.136.67.77/api/auth/google/callback
+            GOOGLE_REDIRECT_URI=https://slotixs.uk/api/auth/google/callback
             DB_URL=$DB_URL
             JWT_SECRET=$JWT_SECRET
             GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
