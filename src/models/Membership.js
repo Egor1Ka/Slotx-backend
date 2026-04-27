@@ -90,6 +90,12 @@ const MembershipSchema = new Schema(
       default: null,
       maxlength: 100,
     },
+
+    /**
+     * Per-org аватарка юзера. Если пусто — фронт показывает букву (фолбэк).
+     * URL уже с прибитыми Cloudinary трансформациями (c_fill,g_face,w_400,h_400).
+     */
+    avatar: { type: String, default: "" },
   },
   { timestamps: true },
 );

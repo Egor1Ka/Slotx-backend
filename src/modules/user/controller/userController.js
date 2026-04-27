@@ -16,6 +16,7 @@ import {
   generateTelegramLink,
   disconnectTelegram,
 } from "../../../services/telegramLinkService.js";
+import { uploadAvatar, deleteAvatar, ASSET_TYPES } from "../../media/index.js";
 
 const createUserSchema = {
   name: { type: "string", required: true },
@@ -173,4 +174,53 @@ const disconnectTelegramHandler = async (req, res) => {
   }
 };
 
-export { createUser, getUser, updateUser, deleteUser, getProfile, connectTelegram, disconnectTelegramHandler };
+const uploadUserAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: { file: { error: "File is required" } },
+      });
+      return;
+    }
+
+    const { id } = req.user;
+    const { url } = await uploadAvatar({
+      assetType: ASSET_TYPES.USER_AVATAR,
+      ownerId: id,
+      file: req.file,
+    });
+
+    const updated = await serviceUpdateUser(id, { avatar: url });
+    if (!updated) {
+      httpResponseError(res, generalStatus.NOT_FOUND);
+      return;
+    }
+    httpResponse(res, generalStatus.SUCCESS, updated);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+const deleteUserAvatar = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const current = await getUserById(id);
+    if (current && current.avatar) {
+      await deleteAvatar({
+        assetType: ASSET_TYPES.USER_AVATAR,
+        ownerId: id,
+      });
+    }
+    const updated = await serviceUpdateUser(id, { avatar: "" });
+    if (!updated) {
+      httpResponseError(res, generalStatus.NOT_FOUND);
+      return;
+    }
+    httpResponse(res, generalStatus.SUCCESS, updated);
+  } catch (error) {
+    httpResponseError(res, error);
+  }
+};
+
+export { createUser, getUser, updateUser, deleteUser, getProfile, connectTelegram, disconnectTelegramHandler, uploadUserAvatar, deleteUserAvatar };

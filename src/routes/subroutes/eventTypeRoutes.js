@@ -5,6 +5,8 @@ import {
   handleCreateEventType,
   handleUpdateEventType,
   handleDeleteEventType,
+  handleUploadServicePhoto,
+  handleDeleteServicePhoto,
 } from "../../controllers/eventTypeController.js";
 import {
   handleGetPricing,
@@ -15,6 +17,11 @@ import { requireOrgAdmin } from "../../middleware/orgMiddleware.js";
 import { getEventTypeById } from "../../repository/eventTypeRepository.js";
 import { httpResponse } from "../../shared/utils/http/httpResponse.js";
 import { generalStatus } from "../../shared/utils/http/httpStatus.js";
+import {
+  uploadFor,
+  handleUploadError,
+  ASSET_TYPES,
+} from "../../modules/media/index.js";
 
 const router = express.Router();
 
@@ -48,5 +55,19 @@ router.put("/:id/position-pricing", authMiddleware, requireOrgAdminFromEventType
 router.post("/", authMiddleware, requireOrgAdminIfOrg, handleCreateEventType);
 router.patch("/:id", authMiddleware, handleUpdateEventType);
 router.delete("/:id", authMiddleware, handleDeleteEventType);
+
+router.post(
+  "/:id/photo",
+  authMiddleware,
+  uploadFor(ASSET_TYPES.SERVICE_PHOTO).single("file"),
+  handleUploadError,
+  handleUploadServicePhoto,
+);
+
+router.delete(
+  "/:id/photo",
+  authMiddleware,
+  handleDeleteServicePhoto,
+);
 
 export default router;
