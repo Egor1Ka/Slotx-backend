@@ -89,6 +89,16 @@ const updateEventType = async (id, data) => {
   return result;
 };
 
+/**
+ * Обновить URL фото услуги. Используется upload/delete photo эндпоинтами.
+ * Возвращает обновлённый eventTypeDto или null если услуги нет.
+ */
+const updateEventTypeImage = async (id, url) => {
+  const result = await repoUpdate(id, { image: url });
+  if (!result) return null;
+  return result;
+};
+
 const deleteEventType = async (id) => {
   const activeBookings = await Booking.countDocuments({
     eventTypeId: id,
@@ -109,4 +119,4 @@ const deleteEventType = async (id) => {
   return deleted;
 };
 
-export { createEventType, createPersonalEventType, updateEventType, deleteEventType };
+export { createEventType, createPersonalEventType, updateEventType, updateEventTypeImage, deleteEventType };

@@ -96,7 +96,6 @@ const createOrganization = async (data, userId) => {
     settings: {
       defaultCountry: data.defaultCountry || "UA",
       brandColor: data.brandColor || undefined,
-      logoUrl: data.logoUrl || undefined,
     },
   };
 
@@ -127,7 +126,6 @@ const updateOrganization = async (orgId, data) => {
   if (data.address !== undefined) update.address = data.address;
   if (data.phone !== undefined) update.phone = data.phone;
   if (data.website !== undefined) update.website = data.website;
-  if (data.logoUrl !== undefined) update["settings.logoUrl"] = data.logoUrl;
   if (data.brandColor !== undefined) update["settings.brandColor"] = data.brandColor;
 
   if (Object.keys(update).length === 0) {
@@ -140,6 +138,20 @@ const updateOrganization = async (orgId, data) => {
   }
 
   return toOrgDto(org);
+};
+
+/**
+ * Обновить URL лого организации. Используется upload-/delete-эндпоинтами.
+ * Возвращает обновлённый orgDto.
+ */
+const updateOrgLogo = async (orgId, url) => {
+  const updated = await Organization.findByIdAndUpdate(
+    orgId,
+    { $set: { "settings.logoUrl": url } },
+    { new: true },
+  );
+  if (!updated) return null;
+  return toOrgDto(updated);
 };
 
 const updateStaffMember = async (orgId, staffId, updates) => {
@@ -184,6 +196,20 @@ const updateStaffPosition = async (orgId, staffId, positionId) => {
   }
 
   return { positionId: membership.positionId ? membership.positionId.toString() : null };
+};
+
+const updateStaffAvatar = async (orgId, staffId, avatarUrl) => {
+  const membership = await Membership.findOneAndUpdate(
+    { userId: staffId, orgId, status: "active" },
+    { avatar: avatarUrl || "" },
+    { new: true },
+  );
+
+  if (!membership) {
+    throw new HttpError(generalStatus.NOT_FOUND);
+  }
+
+  return { avatar: membership.avatar || "" };
 };
 
 const getUserOrganizations = async (userId) => {
@@ -246,6 +272,7 @@ const getMyMembership = async (orgId, userId) => {
   return {
     role: membership.role,
     status: membership.status,
+    avatar: membership.avatar || "",
     displayName: membership.displayName || null,
     bio: membership.bio || null,
     positionId: membership.positionId ? membership.positionId.toString() : null,
@@ -253,4 +280,4 @@ const getMyMembership = async (orgId, userId) => {
   };
 };
 
-export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffMember, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };
+export { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateOrgLogo, updateStaffMember, updateStaffPosition, updateStaffAvatar, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership, getDayRange };

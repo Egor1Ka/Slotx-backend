@@ -1,14 +1,21 @@
-const toOrgDto = (doc) => ({
-  id: doc._id.toString(),
-  name: doc.name,
-  timezone: doc.timezone || null,
-  logo: doc.settings ? doc.settings.logoUrl || null : null,
-  description: doc.description || null,
-  address: doc.address || null,
-  phone: doc.phone || null,
-  website: doc.website || null,
-  active: doc.active !== false,
-});
+import { getOgImageUrl, ASSET_TYPES } from "../modules/media/index.js";
+
+const toOrgDto = (doc) => {
+  const id = doc._id.toString();
+  const hasLogo = Boolean(doc.settings && doc.settings.logoUrl);
+  return {
+    id,
+    name: doc.name,
+    timezone: doc.timezone || null,
+    logo: doc.settings ? doc.settings.logoUrl || null : null,
+    ogImage: hasLogo ? getOgImageUrl(ASSET_TYPES.ORG_LOGO, id) : null,
+    description: doc.description || null,
+    address: doc.address || null,
+    phone: doc.phone || null,
+    website: doc.website || null,
+    active: doc.active !== false,
+  };
+};
 
 const toOrgListItemDto = (org, membership) => ({
   id: org._id.toString(),

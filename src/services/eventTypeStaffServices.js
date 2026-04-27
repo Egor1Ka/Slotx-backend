@@ -20,7 +20,7 @@ const buildStaffProfile = async (member) => {
     ? await getPositionById(member.positionId)
     : null;
 
-  return toOrgStaffDto(user, position, 0);
+  return toOrgStaffDto(user, position, 0, member.status, member);
 };
 
 // Обработчики для каждого типа политики назначения сотрудников

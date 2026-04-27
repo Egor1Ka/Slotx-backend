@@ -4,10 +4,14 @@ import {
   createEventType,
   createPersonalEventType,
   updateEventType,
+  updateEventTypeImage,
   deleteEventType,
 } from "../services/eventTypeService.js";
+import { getEventTypeById } from "../repository/eventTypeRepository.js";
+import { uploadAvatar, deleteAvatar, ASSET_TYPES } from "../modules/media/index.js";
+import Membership from "../models/Membership.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
-import { generalStatus } from "../shared/utils/http/httpStatus.js";
+import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 
@@ -150,10 +154,104 @@ const handleDeleteEventType = async (req, res) => {
   }
 };
 
+const ADMIN_ROLES = ["owner", "admin"];
+
+/**
+ * Авторизация загрузки/удаления фото услуги.
+ * - Org-услуга (`type === 'org'`): caller — owner/admin орг с eventType.orgId.
+ * - Solo-услуга (`type === 'solo'`): caller — сам владелец (`userId === req.user.id`).
+ */
+const canEditServicePhoto = async (currentUserId, eventType) => {
+  if (eventType.type === "solo") {
+    return String(eventType.userId) === String(currentUserId);
+  }
+  if (eventType.type === "org") {
+    if (!eventType.orgId) return false;
+    const membership = await Membership.findOne({
+      userId: currentUserId,
+      orgId: eventType.orgId,
+      status: "active",
+    });
+    return Boolean(membership && ADMIN_ROLES.includes(membership.role));
+  }
+  return false;
+};
+
+const handleUploadServicePhoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const eventType = await getEventTypeById(id);
+    if (!eventType) {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+
+    const allowed = await canEditServicePhoto(req.user.id, eventType);
+    if (!allowed) {
+      return httpResponse(res, generalStatus.UNAUTHORIZED);
+    }
+
+    if (!req.file) {
+      return httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: { file: { error: "File is required" } },
+      });
+    }
+
+    const { url } = await uploadAvatar({
+      assetType: ASSET_TYPES.SERVICE_PHOTO,
+      ownerId: id,
+      file: req.file,
+    });
+
+    const result = await updateEventTypeImage(id, url);
+    if (!result) return httpResponse(res, generalStatus.NOT_FOUND);
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeleteServicePhoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const eventType = await getEventTypeById(id);
+    if (!eventType) {
+      return httpResponse(res, generalStatus.NOT_FOUND);
+    }
+
+    const allowed = await canEditServicePhoto(req.user.id, eventType);
+    if (!allowed) {
+      return httpResponse(res, generalStatus.UNAUTHORIZED);
+    }
+
+    if (eventType.image) {
+      await deleteAvatar({
+        assetType: ASSET_TYPES.SERVICE_PHOTO,
+        ownerId: id,
+      });
+    }
+
+    const result = await updateEventTypeImage(id, "");
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
 export {
   handleGetEventTypes,
   handleGetStaffForEventType,
   handleCreateEventType,
   handleUpdateEventType,
   handleDeleteEventType,
+  handleUploadServicePhoto,
+  handleDeleteServicePhoto,
 };

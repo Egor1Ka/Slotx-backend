@@ -133,6 +133,12 @@ const EventTypeSchema = new Schema(
      */
     color: { type: String },
 
+    /**
+     * URL фото услуги. Заполняется через POST /api/event-types/:id/photo.
+     * Пустая строка = нет фото, фронт показывает fallback-букву.
+     */
+    image: { type: String, default: "" },
+
     price: {
       /**
        * Цена в ЦЕНТАХ. Integer, никогда float.

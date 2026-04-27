@@ -1,15 +1,17 @@
-import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateStaffMember, updateStaffPosition, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
+import { getOrganizationById, getOrgStaff, createOrganization, updateOrganization, updateOrgLogo, updateStaffMember, updateStaffPosition, updateStaffAvatar, getUserOrganizations, addStaffToOrg, acceptInvitation, declineInvitation, getMyMembership } from "../services/orgServices.js";
 import { httpResponse, httpResponseError } from "../shared/utils/http/httpResponse.js";
 import { generalStatus, userStatus } from "../shared/utils/http/httpStatus.js";
 import { validateSchema } from "../shared/utils/validation/requestValidation.js";
 import { isValidObjectId } from "../shared/utils/validation/validators.js";
 import { isValidTimezone } from "../shared/utils/timezone.js";
+import Membership from "../models/Membership.js";
+import Organization from "../models/Organization.js";
+import { uploadAvatar, deleteAvatar, ASSET_TYPES } from "../modules/media/index.js";
 
 const createOrgSchema = {
   name: { type: "string", required: true },
   timezone: { type: "string", required: true },
   currency: { type: "string", required: false },
-  logoUrl: { type: "string", required: false },
   brandColor: { type: "string", required: false },
   defaultCountry: { type: "string", required: false },
 };
@@ -20,7 +22,6 @@ const updateOrgSchema = {
   address: { type: "string", required: false },
   phone: { type: "string", required: false },
   website: { type: "string", required: false },
-  logoUrl: { type: "string", required: false },
   brandColor: { type: "string", required: false },
 };
 
@@ -228,4 +229,128 @@ const handleGetMyMembership = async (req, res) => {
   }
 };
 
-export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffMember, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership };
+const ADMIN_ROLES = ["owner", "admin"];
+
+const canEditStaffAvatar = async (currentUserId, orgId, staffId) => {
+  if (String(currentUserId) === String(staffId)) return true;
+  const membership = await Membership.findOne({
+    userId: currentUserId,
+    orgId,
+    status: "active",
+  });
+  return Boolean(membership && ADMIN_ROLES.includes(membership.role));
+};
+
+const handleUploadStaffAvatar = async (req, res) => {
+  try {
+    const { id: orgId, staffId } = req.params;
+
+    if (!isValidObjectId(orgId) || !isValidObjectId(staffId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const allowed = await canEditStaffAvatar(req.user.id, orgId, staffId);
+    if (!allowed) {
+      return httpResponse(res, generalStatus.UNAUTHORIZED);
+    }
+
+    if (!req.file) {
+      return httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: { file: { error: "File is required" } },
+      });
+    }
+
+    const { url } = await uploadAvatar({
+      assetType: ASSET_TYPES.STAFF_AVATAR,
+      ownerId: `${orgId}/${staffId}`,
+      file: req.file,
+    });
+
+    const result = await updateStaffAvatar(orgId, staffId, url);
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeleteStaffAvatar = async (req, res) => {
+  try {
+    const { id: orgId, staffId } = req.params;
+
+    if (!isValidObjectId(orgId) || !isValidObjectId(staffId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const allowed = await canEditStaffAvatar(req.user.id, orgId, staffId);
+    if (!allowed) {
+      return httpResponse(res, generalStatus.UNAUTHORIZED);
+    }
+
+    const current = await Membership.findOne({ userId: staffId, orgId, status: "active" });
+    if (current && current.avatar) {
+      await deleteAvatar({
+        assetType: ASSET_TYPES.STAFF_AVATAR,
+        ownerId: `${orgId}/${staffId}`,
+      });
+    }
+
+    const result = await updateStaffAvatar(orgId, staffId, "");
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleUploadOrgLogo = async (req, res) => {
+  try {
+    const { id: orgId } = req.params;
+    if (!isValidObjectId(orgId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+    if (!req.file) {
+      return httpResponseError(res, {
+        ...userStatus.VALIDATION_ERROR,
+        data: { file: { error: "File is required" } },
+      });
+    }
+
+    const { url } = await uploadAvatar({
+      assetType: ASSET_TYPES.ORG_LOGO,
+      ownerId: orgId,
+      file: req.file,
+    });
+
+    const result = await updateOrgLogo(orgId, url);
+    if (!result) return httpResponse(res, generalStatus.NOT_FOUND);
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+const handleDeleteOrgLogo = async (req, res) => {
+  try {
+    const { id: orgId } = req.params;
+    if (!isValidObjectId(orgId)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST);
+    }
+
+    const current = await Organization.findById(orgId);
+    if (!current) return httpResponse(res, generalStatus.NOT_FOUND);
+
+    if (current.settings && current.settings.logoUrl) {
+      await deleteAvatar({
+        assetType: ASSET_TYPES.ORG_LOGO,
+        ownerId: orgId,
+      });
+    }
+
+    const result = await updateOrgLogo(orgId, "");
+    return httpResponse(res, generalStatus.SUCCESS, result);
+  } catch (error) {
+    return httpResponseError(res, error);
+  }
+};
+
+export { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffMember, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership, handleUploadStaffAvatar, handleDeleteStaffAvatar, handleUploadOrgLogo, handleDeleteOrgLogo };

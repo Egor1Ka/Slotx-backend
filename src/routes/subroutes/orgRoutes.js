@@ -1,8 +1,9 @@
 import express from "express";
-import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffMember, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership } from "../../controllers/orgController.js";
+import { handleGetOrg, handleGetOrgStaff, handleCreateOrg, handleUpdateOrg, handleUpdateStaffMember, handleUpdateStaffPosition, handleGetUserOrgs, handleAddStaff, handleAcceptInvitation, handleDeclineInvitation, handleGetMyMembership, handleUploadStaffAvatar, handleDeleteStaffAvatar, handleUploadOrgLogo, handleDeleteOrgLogo } from "../../controllers/orgController.js";
 import { authMiddleware } from "../../modules/auth/index.js";
 import { requireOrgAdmin } from "../../middleware/orgMiddleware.js";
 import { requireFeature } from "../../modules/billing/middleware/plan.js";
+import { uploadFor, handleUploadError, ASSET_TYPES } from "../../modules/media/index.js";
 
 const router = express.Router();
 
@@ -17,5 +18,33 @@ router.patch("/:id/staff/:staffId", authMiddleware, handleUpdateStaffMember);
 router.patch("/:id/staff/:staffId/position", authMiddleware, requireOrgAdmin((req) => req.params.id), handleUpdateStaffPosition);
 router.patch("/:id/membership/accept", authMiddleware, handleAcceptInvitation);
 router.delete("/:id/membership/decline", authMiddleware, handleDeclineInvitation);
+router.post(
+  "/:id/staff/:staffId/avatar",
+  authMiddleware,
+  uploadFor(ASSET_TYPES.STAFF_AVATAR).single("file"),
+  handleUploadError,
+  handleUploadStaffAvatar,
+);
+router.delete(
+  "/:id/staff/:staffId/avatar",
+  authMiddleware,
+  handleDeleteStaffAvatar,
+);
+
+router.post(
+  "/:id/logo",
+  authMiddleware,
+  requireOrgAdmin((req) => req.params.id),
+  uploadFor(ASSET_TYPES.ORG_LOGO).single("file"),
+  handleUploadError,
+  handleUploadOrgLogo,
+);
+
+router.delete(
+  "/:id/logo",
+  authMiddleware,
+  requireOrgAdmin((req) => req.params.id),
+  handleDeleteOrgLogo,
+);
 
 export default router;
