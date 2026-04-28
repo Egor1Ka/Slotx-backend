@@ -127,6 +127,8 @@ const updateOrganization = async (orgId, data) => {
   if (data.phone !== undefined) update.phone = data.phone;
   if (data.website !== undefined) update.website = data.website;
   if (data.brandColor !== undefined) update["settings.brandColor"] = data.brandColor;
+  if (data.timezone !== undefined) update.timezone = data.timezone;
+  if (data.currency !== undefined) update.currency = data.currency;
 
   if (Object.keys(update).length === 0) {
     throw new HttpError(generalStatus.BAD_REQUEST);

@@ -23,6 +23,8 @@ const updateOrgSchema = {
   phone: { type: "string", required: false },
   website: { type: "string", required: false },
   brandColor: { type: "string", required: false },
+  timezone: { type: "string", required: false },
+  currency: { type: "string", required: false },
 };
 
 const updateStaffMemberSchema = {
@@ -84,6 +86,12 @@ const handleUpdateOrg = async (req, res) => {
     const validated = validateSchema(updateOrgSchema, req.body);
     if (validated.errors) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: validated.errors });
+    }
+    if (validated.timezone !== undefined && !isValidTimezone(validated.timezone)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
+    }
+    if (validated.currency !== undefined && !["UAH", "USD"].includes(validated.currency)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { currency: "must be UAH or USD" } });
     }
 
     const result = await updateOrganization(req.params.id, validated);
