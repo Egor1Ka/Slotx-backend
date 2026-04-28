@@ -89,7 +89,6 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
   const resolvedPrice = await resolvePriceForStaff(eventType, staffPositionId);
 
   const amount = resolvedPrice ? resolvedPrice.amount : 0;
-  const currency = resolvedPrice ? resolvedPrice.currency : "usd";
 
   // Динамический дефолтный статус вместо хардкода
   const defaultStatusId = await resolveDefaultStatusId(eventType.orgId, staffId);
@@ -117,7 +116,6 @@ const createBooking = async ({ eventTypeId, staffId, startAt, timezone, invitee,
     payment: {
       status: computePaymentStatus(amount),
       amount,
-      currency,
     },
     cancelToken: generateToken(),
     rescheduleToken: generateToken(),

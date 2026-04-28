@@ -103,6 +103,13 @@ const ScheduleTemplateSchema = new Schema(
     timezone: { type: String, required: false, default: null },
 
     /**
+     * Валюта ЛИЧНОГО расписания (orgId === null).
+     * Для орг-расписаний currency берётся из Organization.currency.
+     * Используется для отображения сумм в личной статистике.
+     */
+    currency: { type: String, enum: ["UAH", "USD"], default: "UAH" },
+
+    /**
      * Алгоритм построения сетки слотов:
      * fixed   — сетка строго по шагу, ничего не меняется
      * optimal — сетка + один доп. слот после конца последней брони

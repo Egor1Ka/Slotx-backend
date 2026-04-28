@@ -23,14 +23,14 @@ const buildAssignedStaff = (data) =>
 const createEventType = async (orgId, data) => {
   const slug = generateSlug(data.name);
 
-  const { currency, ...restData } = data;
+  const { currency: _ignoredCurrency, ...restData } = data;
 
   const eventTypeData = {
     ...restData,
     orgId,
     slug,
     type: "org",
-    price: { amount: data.price, currency: currency || "UAH" },
+    price: { amount: data.price },
     assignedPositions: buildAssignedPositions(data),
     assignedStaff: buildAssignedStaff(data),
   };
@@ -41,26 +41,26 @@ const createEventType = async (orgId, data) => {
 const createPersonalEventType = async (userId, data) => {
   const slug = generateSlug(data.name);
 
-  const { currency, ...restData } = data;
+  const { currency: _ignoredCurrency, ...restData } = data;
 
   const eventTypeData = {
     ...restData,
     userId,
     slug,
     type: "solo",
-    price: { amount: data.price, currency: currency || "UAH" },
+    price: { amount: data.price },
   };
 
   return repoCreate(eventTypeData);
 };
 
 const buildPriceUpdate = (data, updateData) => {
-  if (data.price === undefined && data.currency === undefined) return updateData;
+  if (data.price === undefined) return updateData;
 
-  const { currency, ...rest } = updateData;
+  const { currency: _ignoredCurrency, ...rest } = updateData;
   return {
     ...rest,
-    price: { amount: data.price, currency: data.currency },
+    price: { amount: data.price },
   };
 };
 

@@ -57,7 +57,7 @@ const handleCreateBooking = async (req, res) => {
     if (result.error === "template_not_found") {
       return httpResponse(res, generalStatus.NOT_FOUND);
     }
-    const dto = toBookingCreatedDto(result.raw, result.eventType);
+    const dto = await toBookingCreatedDto(result.raw, result.eventType);
     return httpResponse(res, generalStatus.CREATED, dto);
   } catch (error) {
     return httpResponseError(res, error);

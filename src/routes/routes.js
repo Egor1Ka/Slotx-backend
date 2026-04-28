@@ -15,6 +15,7 @@ import positionRoutes from "./subroutes/positionRoutes.js";
 import userSearchRoutes from "./subroutes/userSearchRoutes.js";
 import bookingFieldRoutes, { handleGetMergedForm } from "./subroutes/bookingFieldRoutes.js";
 import bookingStatusRoutes from "./subroutes/bookingStatusRoutes.js";
+import statsRoutes from "./subroutes/statsRoutes.js";
 
 const healthCheck = (_req, res) => {
   httpResponse(res, generalStatus.SUCCESS, { message: "API is running" });
@@ -36,6 +37,7 @@ router.use("/schedule", scheduleRoutes);
 router.use("/slots", slotRoutes);
 router.use("/bookings", bookingRoutes);
 router.use("/booking-statuses", bookingStatusRoutes);
+router.use("/stats", statsRoutes);
 router.use("/org", orgRoutes);
 router.use("/positions", positionRoutes);
 router.use("/users", userSearchRoutes);

@@ -7,6 +7,7 @@ const toOrgDto = (doc) => {
     id,
     name: doc.name,
     timezone: doc.timezone || null,
+    currency: doc.currency || "UAH",
     logo: doc.settings ? doc.settings.logoUrl || null : null,
     ogImage: hasLogo ? getOgImageUrl(ASSET_TYPES.ORG_LOGO, id) : null,
     description: doc.description || null,

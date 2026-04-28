@@ -49,7 +49,7 @@ const findByStaffFiltered = async ({ staffId, dateFrom, dateTo, locationId, orgI
   const docs = await Booking.find(query)
     .populate("statusId")
     .sort({ startAt: 1 });
-  return docs.map(toBookingDto);
+  return Promise.all(docs.map(toBookingDto));
 };
 
 const findBookingById = async (id) => {

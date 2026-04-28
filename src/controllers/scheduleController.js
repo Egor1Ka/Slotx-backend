@@ -40,6 +40,7 @@ const putTemplateSchema = {
   slotMode: { type: "string", required: false },
   slotStepMin: { type: "number", required: false },
   timezone: { type: "string", required: false },
+  currency: { type: "string", required: false },
 };
 
 const handlePutTemplate = async (req, res) => {
@@ -55,6 +56,9 @@ const handlePutTemplate = async (req, res) => {
     }
     if (req.body.timezone && !isValidTimezone(req.body.timezone)) {
       return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { timezone: "invalid IANA timezone" } });
+    }
+    if (req.body.currency && !["UAH", "USD"].includes(req.body.currency)) {
+      return httpResponse(res, generalStatus.BAD_REQUEST, { errors: { currency: "must be UAH or USD" } });
     }
 
     const callerId = req.user.id;

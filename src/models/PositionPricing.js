@@ -6,8 +6,7 @@ const positionPricingSchema = new mongoose.Schema(
     eventTypeId: { type: mongoose.Schema.Types.ObjectId, ref: "EventType", required: true },
     positionId:  { type: mongoose.Schema.Types.ObjectId, ref: "Position", required: true },
     price: {
-      amount:   { type: Number, required: true, min: 0 },
-      currency: { type: String, required: true, default: "UAH" },
+      amount: { type: Number, required: true, min: 0 },
     },
   },
   { timestamps: true },

@@ -143,13 +143,10 @@ const EventTypeSchema = new Schema(
       /**
        * Цена в ЦЕНТАХ. Integer, никогда float.
        * 5000 = ₴50.00. 0 = бесплатно.
+       * Валюта НЕ хранится здесь — резолвится через ScheduleTemplate.currency
+       * (для личных услуг) или Organization.currency (для оргшних).
        */
       amount: { type: Number, default: 0 },
-
-      /**
-       * ISO 4217: UAH, USD, EUR.
-       */
-      currency: { type: String, default: "UAH" },
 
       /**
        * Stripe Price ID для чекаута.

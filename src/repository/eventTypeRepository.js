@@ -22,12 +22,12 @@ const getEventTypesForStaff = async (staffId, orgId, positionId) => {
     $or: [{ userId: staffId }, ...orgConditions],
   };
   const docs = await EventType.find(query);
-  return docs.map(toEventTypeDto);
+  return Promise.all(docs.map(toEventTypeDto));
 };
 
 const getEventTypesByOrg = async (orgId) => {
   const docs = await EventType.find({ orgId, active: true });
-  return docs.map(toEventTypeDto);
+  return Promise.all(docs.map(toEventTypeDto));
 };
 
 const createEventType = async (data) => {

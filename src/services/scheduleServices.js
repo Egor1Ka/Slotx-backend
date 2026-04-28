@@ -60,7 +60,7 @@ const createDefaultSchedule = async (staffId, orgId = null, timezone = null) => 
   return template;
 };
 
-const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMode, slotStepMin, timezone }) => {
+const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMode, slotStepMin, timezone, currency }) => {
   const resolvedTimezone = orgId
     ? await getOrgTimezone(orgId)
     : timezone;
@@ -77,6 +77,13 @@ const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMod
     await updateTemplateValidTo(current._id, yesterdayUtc);
   }
 
+  // Currency живёт ТОЛЬКО у личных шаблонов (orgId=null).
+  // Для оргшних — currency читается из Organization, поле в шаблоне не используется.
+  // Если currency не передан — наследуем из предыдущего шаблона или ставим "UAH".
+  const resolvedCurrency = orgId
+    ? null
+    : (currency || current?.currency || "UAH");
+
   const newTemplate = await createTemplate({
     staffId,
     orgId: orgId || null,
@@ -84,6 +91,7 @@ const rotateTemplate = async ({ staffId, orgId, locationId, weeklyHours, slotMod
     validFrom: todayUtc,
     validTo: null,
     timezone: orgId ? null : resolvedTimezone,
+    currency: resolvedCurrency,
     slotMode: slotMode || "fixed",
     slotStepMin: slotStepMin ?? 30,
     weeklyHours,

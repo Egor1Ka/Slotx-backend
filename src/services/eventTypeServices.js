@@ -18,7 +18,7 @@ const applyPositionPricing = (positionId) => async (eventType) => {
     ...eventType,
     price: {
       amount: override.price.amount,
-      currency: override.price.currency,
+      currency: eventType.price ? eventType.price.currency : "UAH",
     },
   };
 };

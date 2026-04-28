@@ -1,12 +1,17 @@
 import { getOgImageUrl, ASSET_TYPES } from "../modules/media/index.js";
+import { resolveCurrency } from "../services/currencyResolver.js";
 
-const toPriceDto = (price) => ({
+const toPriceDto = (price, currency) => ({
   amount: price.amount,
-  currency: price.currency,
+  currency,
 });
 
-const toEventTypeDto = (doc) => {
+const toEventTypeDto = async (doc) => {
   const id = doc._id.toString();
+  const currency = await resolveCurrency({
+    orgId: doc.orgId,
+    userId: doc.userId,
+  });
   return {
     id,
     userId: doc.userId ? doc.userId.toString() : null,
@@ -19,7 +24,7 @@ const toEventTypeDto = (doc) => {
     type: doc.type,
     color: doc.color,
     description: doc.description || null,
-    price: doc.price ? toPriceDto(doc.price) : null,
+    price: doc.price ? toPriceDto(doc.price, currency) : null,
     bufferAfter: doc.bufferAfter,
     minNotice: doc.minNotice,
     slotStepMin: doc.slotStepMin,
