@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Invitee from "./models/Invitee.js";
 
 const { DB_URL } = process.env;
 

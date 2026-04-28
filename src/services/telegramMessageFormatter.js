@@ -43,6 +43,17 @@ const formatEmail = (booking) =>
 const formatContactInfo = (booking) =>
   `${formatPhone(booking)}${formatEmail(booking)}`;
 
+const isFilledCustomField = (entry) =>
+  !!entry && !!entry.label && entry.value !== undefined && entry.value !== null && entry.value !== "";
+
+const formatCustomFieldEntry = (entry) => `\n📝 ${entry.label}: ${entry.value}`;
+
+const formatCustomFields = (booking) => {
+  const values = booking.customFieldValues;
+  if (!Array.isArray(values) || values.length === 0) return "";
+  return values.filter(isFilledCustomField).map(formatCustomFieldEntry).join("");
+};
+
 const formatServiceName = (booking) => {
   const name = booking.eventTypeId?.name;
   return name ? `\n💇 ${name}` : "";
@@ -54,7 +65,7 @@ const formatStaffName = (staffName) =>
 const formatOrgName = (orgName) => (orgName ? `\n🏢 ${orgName}` : "");
 
 const formatBookingDetails = (booking, staffName, orgName, timezone) =>
-  `👤 ${formatInviteeName(booking)}${formatContactInfo(booking)}${formatServiceName(booking)}${formatStaffName(staffName)}${formatOrgName(orgName)}\n📅 ${formatDateTime(booking.startAt, timezone)}`;
+  `👤 ${formatInviteeName(booking)}${formatContactInfo(booking)}${formatCustomFields(booking)}${formatServiceName(booking)}${formatStaffName(staffName)}${formatOrgName(orgName)}\n📅 ${formatDateTime(booking.startAt, timezone)}`;
 
 const MESSAGE_TEMPLATES = {
   [NOTIFICATION_TYPE.BOOKING_CONFIRMED]: (booking, staffName, orgName, timezone) =>

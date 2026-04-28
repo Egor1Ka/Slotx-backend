@@ -10,17 +10,19 @@ const InviteeSchema = new Schema(
     name: { type: String, required: true },
 
     /**
-     * Email клиента. Nullable, unique sparse.
-     * null если бизнес работает только с телефоном.
+     * Email клиента. Опциональный.
+     * Поле просто отсутствует, если не задано.
+     * Уникальность обеспечивается partial-индексом ниже —
+     * он индексирует ТОЛЬКО строковые значения, поэтому
+     * несколько инвайти без email сосуществуют без конфликта.
      */
-    email: { type: String, unique: true, sparse: true, default: null },
+    email: { type: String },
 
     /**
-     * E.164 формат: "+380501234567". Nullable, unique sparse.
-     * Стандарт: + код_страны + номер, только цифры.
-     * Все SMS-сервисы ожидают именно этот формат.
+     * E.164 формат: "+380501234567". Опциональный.
+     * Уникальность через partial-индекс (см. ниже).
      */
-    phone: { type: String, unique: true, sparse: true, default: null },
+    phone: { type: String },
 
     /**
      * ISO 3166-1 ("UA"). Nullable.
@@ -43,6 +45,18 @@ const InviteeSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true },
+);
+
+// Уникальные partial-индексы: индексируются только строковые значения.
+// null/undefined в индекс не попадают, поэтому несколько инвайти
+// без email или без phone не конфликтуют по unique-ограничению.
+InviteeSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { email: { $type: "string" } } },
+);
+InviteeSchema.index(
+  { phone: 1 },
+  { unique: true, partialFilterExpression: { phone: { $type: "string" } } },
 );
 
 export default model("Invitee", InviteeSchema);
