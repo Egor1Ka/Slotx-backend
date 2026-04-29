@@ -6,6 +6,7 @@ import {
 import Booking from "../models/Booking.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
+import { removeReviewsForTarget } from "./reviewCascadeServices.js";
 
 const generateSlug = (name) =>
   name
@@ -116,6 +117,9 @@ const deleteEventType = async (id) => {
   if (!deleted) {
     throw new HttpError(generalStatus.NOT_FOUND);
   }
+
+  await removeReviewsForTarget({ targetType: "EventType", targetId: id });
+
   return deleted;
 };
 

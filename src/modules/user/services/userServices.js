@@ -6,6 +6,7 @@ import {
   deleteUser as repoDeleteUser,
   searchUsersByEmail as repoSearchUsersByEmail,
 } from "../repository/userRepository.js";
+import { removeReviewsForTarget, removeReviewsByAuthor } from "../../../services/reviewCascadeServices.js";
 
 const createUser = async (data) => {
   return await repoCreateUser(data);
@@ -24,7 +25,14 @@ const updateUser = async (id, update) => {
 };
 
 const deleteUser = async (id) => {
-  return await repoDeleteUser(id);
+  const deleted = await repoDeleteUser(id);
+
+  await Promise.all([
+    removeReviewsForTarget({ targetType: "User", targetId: id }),
+    removeReviewsByAuthor(id),
+  ]);
+
+  return deleted;
 };
 
 const searchUsersByEmail = async (emailQuery, excludeUserIds, limit) => {
