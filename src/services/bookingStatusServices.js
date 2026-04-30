@@ -9,8 +9,8 @@ import {
 } from "../repository/bookingStatusRepository.js";
 import {
   VALID_ACTIONS,
-  STATUS_COLORS,
   DEFAULT_STATUSES,
+  isAllowedColor,
 } from "../constants/bookingStatus.js";
 import { HttpError } from "../shared/utils/http/httpError.js";
 import { generalStatus } from "../shared/utils/http/httpStatus.js";
@@ -65,7 +65,7 @@ const createCustomStatus = async ({ label, color, actions, orgId, userId }) => {
   if (!label || !label.trim()) {
     throw new HttpError(generalStatus.BAD_REQUEST);
   }
-  if (!STATUS_COLORS.includes(color)) {
+  if (!isAllowedColor(color)) {
     throw new HttpError(generalStatus.BAD_REQUEST);
   }
   const invalidAction = (actions || []).find((a) => !VALID_ACTIONS.includes(a));
@@ -100,7 +100,7 @@ const updateStatusById = async (id, updates) => {
   const allowed = {};
   if (updates.label !== undefined) allowed.label = updates.label;
   if (updates.color !== undefined) {
-    if (!STATUS_COLORS.includes(updates.color)) {
+    if (!isAllowedColor(updates.color)) {
       throw new HttpError(generalStatus.BAD_REQUEST);
     }
     allowed.color = updates.color;

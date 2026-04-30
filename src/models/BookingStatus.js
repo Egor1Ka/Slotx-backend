@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { VALID_ACTIONS, STATUS_COLORS } from "../constants/bookingStatus.js";
+import { VALID_ACTIONS, isAllowedColor } from "../constants/bookingStatus.js";
 
 const { Schema, model } = mongoose;
 
@@ -8,8 +8,11 @@ const BookingStatusSchema = new Schema(
     label: { type: String, required: true },
     color: {
       type: String,
-      enum: STATUS_COLORS,
       required: true,
+      validate: {
+        validator: isAllowedColor,
+        message: "Color must be hex (#RRGGBB) or a legacy named color",
+      },
     },
     actions: {
       type: [String],
